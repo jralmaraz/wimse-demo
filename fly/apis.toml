@@ -1,0 +1,33 @@
+# Fly.io app: wimse-demo-apis
+# Runs fraud-api (8084) + compliance-reporter (8085) on a single VM.
+# Free tier consolidation: two lightweight HTTP servers in one process.
+
+app = "wimse-demo-apis"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "services/apis/Dockerfile"
+
+[http_service]
+  internal_port = 8084
+  force_https   = true
+  auto_stop_machines  = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[services]]
+  protocol   = "tcp"
+  internal_port = 8085
+  [[services.ports]]
+    port = 8085
+    handlers = ["tls", "http"]
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[env]
+  FRAUD_ADDR      = ":8084"
+  COMPLIANCE_ADDR = ":8085"
+  AS_URL          = "https://wimse-demo-platform.fly.dev"   # update port after deploy
