@@ -111,7 +111,7 @@ Refresh when `time.Since(cachedPubAt) > jwksCacheTTL`. There is no `jwt.NewCachi
 
 Fly app names: `wimse-demo-platform`, `wimse-demo-workload`, `wimse-demo-apis`  
 Region: `sjc` (San Jose)  
-Fly.io configs: `fly/platform.toml`, `fly/workload.toml`, `fly/apis.toml`
+Fly.io configs: `fly.platform.toml`, `fly.workload.toml`, `fly.apis.toml` (at repo root — flyctl uses CWD as build context)
 
 ---
 

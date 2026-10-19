@@ -21,8 +21,8 @@ primary_region = "sjc"
   cpus = 1
 
 [env]
-  ADDR              = ":8083"
-  SPIRE_URL         = "https://wimse-demo-platform.fly.dev"
-  AS_URL            = "https://wimse-demo-platform.fly.dev"     # port 8082 — update after deploy
-  FRAUD_API_URL     = "https://wimse-demo-apis.fly.dev"         # port 8084 — update after deploy
-  COMPLIANCE_API_URL = "https://wimse-demo-apis.fly.dev"        # port 8085 — update after deploy
+  ADDR               = ":8083"
+  SPIRE_URL          = "https://wimse-demo-platform.fly.dev"
+  AS_URL             = "https://wimse-demo-platform.fly.dev"
+  FRAUD_API_URL      = "https://wimse-demo-apis.fly.dev"
+  COMPLIANCE_API_URL = "https://wimse-demo-apis.fly.dev"
