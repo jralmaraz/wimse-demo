@@ -1,9 +1,11 @@
 # wimse-demo
 
-A live WIMSE identity demo built around a cross-cloud payment scenario. A single transaction triggers a full cryptographic identity chain: SPIFFE attestation → Workload Identity Token → Workload Authorization Grant → scoped access token → API calls across simulated AWS and Azure.
+A WIMSE identity demo built around a cross-cloud payment scenario. A single transaction triggers a full cryptographic identity chain: SPIFFE attestation → Workload Identity Token → Workload Authorization Grant → scoped access token → API calls across simulated AWS and Azure.
 
-**Live demo:** https://wimse-demo.pages.dev  
-**Repo:** https://github.com/jralmaraz/wimse-demo
+**Repo:** https://github.com/jralmaraz/wimse-demo  
+**SPA:** https://wimse-demo.pages.dev (static; Fly.io backends scaled to zero — run locally to exercise the full flow)
+
+> **Status:** Fly.io backends (`wimse-demo-platform`, `wimse-demo-workload`, `wimse-demo-apis`) are scaled to zero to avoid free-tier charges. The SPA and all code remain intact. See [Run locally](#run-locally) to spin everything up in Docker, or [Deploy to Fly.io](#deploy-to-flyio) to redeploy.
 
 ---
 
@@ -122,12 +124,22 @@ CI/CD pipeline (`.github/workflows/ci.yml`) runs on every push and PR:
 4. **Deploy to Fly.io** — deploys platform first, then apis, then workload (main branch only)
 5. **Deploy SPA** — Cloudflare Pages wrangler deploy (main branch only)
 
-### Manual deploy
+### Redeploy from zero
+
+The apps exist in Fly.io but have no machines. To redeploy:
 
 ```bash
 flyctl deploy --config fly.platform.toml --remote-only
 flyctl deploy --config fly.apis.toml --remote-only
 flyctl deploy --config fly.workload.toml --remote-only
+```
+
+To scale back to zero again (stop billing):
+
+```bash
+flyctl scale count 0 --app wimse-demo-platform --yes
+flyctl scale count 0 --app wimse-demo-workload --yes
+flyctl scale count 0 --app wimse-demo-apis --yes
 ```
 
 ---
