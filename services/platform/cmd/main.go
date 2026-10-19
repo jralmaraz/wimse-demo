@@ -20,11 +20,10 @@ import (
 )
 
 const (
-	defaultSpireAddr = ":8081"
-	defaultASAddr    = ":8082"
-	platformIssuer   = "https://spire.finclear.io"
-	asIssuer         = "https://as.finclear.io"
-	witTTL           = 10 * time.Minute
+	defaultAddr    = ":8081"
+	platformIssuer = "https://spire.finclear.io"
+	asIssuer       = "https://as.finclear.io"
+	witTTL         = 10 * time.Minute
 )
 
 var (
@@ -51,24 +50,19 @@ func main() {
 		PublicKey: platformKP.Public,
 	}))
 
-	spireAddr := envOr("SPIRE_ADDR", defaultSpireAddr)
-	asAddr := envOr("AS_ADDR", defaultASAddr)
-	log.Printf("SPIRE sim on %s | AS on %s", spireAddr, asAddr)
-
-	go func() {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/wit/issue", handleWITIssue)
-		mux.HandleFunc("/wag/issue", handleWAGIssue)
-		mux.HandleFunc("/.well-known/jwks.json", handleSPIREJWKS)
-		mux.HandleFunc("/healthz", handleHealth)
-		must("SPIRE listen", http.ListenAndServe(spireAddr, cors(mux)))
-	}()
+	addr := envOr("ADDR", defaultAddr)
+	log.Printf("platform (SPIRE sim + AS) on %s", addr)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/wit/issue", handleWITIssue)
+	mux.HandleFunc("/wag/issue", handleWAGIssue)
 	mux.HandleFunc("/token", handleToken)
+	// /.well-known/jwks.json serves the AS public key — used by resource servers to validate at+jwt.
 	mux.HandleFunc("/.well-known/jwks.json", handleASJWKS)
+	// /spire/jwks.json serves the platform key — used to verify WIT and WAG signatures.
+	mux.HandleFunc("/spire/jwks.json", handleSPIREJWKS)
 	mux.HandleFunc("/healthz", handleHealth)
-	must("AS listen", http.ListenAndServe(asAddr, cors(mux)))
+	must("platform listen", http.ListenAndServe(addr, cors(mux)))
 }
 
 // POST /wit/issue — issues a WIT for the requesting workload.

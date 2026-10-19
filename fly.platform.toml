@@ -21,18 +21,10 @@ primary_region = "sjc"
   auto_start_machines = true
   min_machines_running = 0
 
-[[services]]
-  protocol   = "tcp"
-  internal_port = 8082
-  [[services.ports]]
-    port = 8082
-    handlers = ["tls", "http"]
-
 [[vm]]
   memory = "256mb"
   cpu_kind = "shared"
   cpus = 1
 
 [env]
-  SPIRE_ADDR = ":8081"
-  AS_ADDR    = ":8082"
+  ADDR = ":8081"

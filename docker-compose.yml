@@ -4,11 +4,9 @@ services:
       context: .
       dockerfile: services/platform/Dockerfile
     ports:
-      - "8081:8081"   # SPIRE simulator
-      - "8082:8082"   # Authorization Server
+      - "8081:8081"   # SPIRE sim + AS — unified single port
     environment:
-      SPIRE_ADDR: ":8081"
-      AS_ADDR: ":8082"
+      ADDR: ":8081"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:8081/healthz || exit 1"]
       interval: 10s
@@ -24,9 +22,9 @@ services:
     environment:
       ADDR: ":8083"
       SPIRE_URL: "http://platform:8081"
-      AS_URL: "http://platform:8082"
+      AS_URL: "http://platform:8081"
       FRAUD_API_URL: "http://apis:8084"
-      COMPLIANCE_API_URL: "http://apis:8085"
+      COMPLIANCE_API_URL: "http://apis:8084"
     depends_on:
       platform:
         condition: service_healthy
@@ -36,12 +34,10 @@ services:
       context: .
       dockerfile: services/apis/Dockerfile
     ports:
-      - "8084:8084"   # fraud-api
-      - "8085:8085"   # compliance-reporter
+      - "8084:8084"   # fraud + compliance — unified single port
     environment:
-      FRAUD_ADDR: ":8084"
-      COMPLIANCE_ADDR: ":8085"
-      AS_URL: "http://platform:8082"
+      ADDR: ":8084"
+      AS_URL: "http://platform:8081"
     depends_on:
       platform:
         condition: service_healthy
