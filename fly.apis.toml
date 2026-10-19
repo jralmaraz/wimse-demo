@@ -30,4 +30,4 @@ primary_region = "sjc"
 [env]
   FRAUD_ADDR      = ":8084"
   COMPLIANCE_ADDR = ":8085"
-  AS_URL          = "https://wimse-demo-platform.fly.dev"   # update port after deploy
+  AS_URL          = "https://wimse-demo-platform.fly.dev"

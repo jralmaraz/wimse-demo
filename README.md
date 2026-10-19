@@ -125,9 +125,9 @@ CI/CD pipeline (`.github/workflows/ci.yml`) runs on every push and PR:
 ### Manual deploy
 
 ```bash
-flyctl deploy --config fly/platform.toml --remote-only
-flyctl deploy --config fly/apis.toml --remote-only
-flyctl deploy --config fly/workload.toml --remote-only
+flyctl deploy --config fly.platform.toml --remote-only
+flyctl deploy --config fly.apis.toml --remote-only
+flyctl deploy --config fly.workload.toml --remote-only
 ```
 
 ---

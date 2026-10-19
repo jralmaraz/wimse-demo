@@ -104,17 +104,17 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Deploy platform
-        run: flyctl deploy --config fly/platform.toml --remote-only
+        run: flyctl deploy --config fly.platform.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy apis
-        run: flyctl deploy --config fly/apis.toml --remote-only
+        run: flyctl deploy --config fly.apis.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
       - name: Deploy workload
-        run: flyctl deploy --config fly/workload.toml --remote-only
+        run: flyctl deploy --config fly.workload.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
 
