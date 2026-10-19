@@ -26,3 +26,5 @@ primary_region = "sjc"
   AS_URL             = "https://wimse-demo-platform.fly.dev"
   FRAUD_API_URL      = "https://wimse-demo-apis.fly.dev"
   COMPLIANCE_API_URL = "https://wimse-demo-apis.fly.dev"
+  # SPIRE and AS are on the same host/port after single-port consolidation.
+  # FRAUD and COMPLIANCE are on the same host/port after single-port consolidation.

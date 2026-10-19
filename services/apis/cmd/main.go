@@ -20,10 +20,9 @@ import (
 )
 
 const (
-	defaultFraudAddr      = ":8084"
-	defaultComplianceAddr = ":8085"
-	asIssuer              = "https://as.finclear.io"
-	jwksCacheTTL          = 5 * time.Minute
+	defaultAddr  = ":8084"
+	asIssuer     = "https://as.finclear.io"
+	jwksCacheTTL = 5 * time.Minute
 )
 
 // jwksCache caches the AS public key to avoid fetching on every request.
@@ -34,21 +33,14 @@ var (
 )
 
 func main() {
-	fraudAddr := envOr("FRAUD_ADDR", defaultFraudAddr)
-	compAddr := envOr("COMPLIANCE_ADDR", defaultComplianceAddr)
-	log.Printf("fraud-api on %s | compliance-reporter on %s", fraudAddr, compAddr)
-
-	go func() {
-		mux := http.NewServeMux()
-		mux.HandleFunc("/fraud/score", handleFraudScore)
-		mux.HandleFunc("/healthz", handleHealth("fraud-api"))
-		must("fraud listen", http.ListenAndServe(fraudAddr, cors(mux)))
-	}()
+	addr := envOr("ADDR", defaultAddr)
+	log.Printf("apis (fraud + compliance) on %s", addr)
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/fraud/score", handleFraudScore)
 	mux.HandleFunc("/compliance/log", handleComplianceLog)
-	mux.HandleFunc("/healthz", handleHealth("compliance-reporter"))
-	must("compliance listen", http.ListenAndServe(compAddr, cors(mux)))
+	mux.HandleFunc("/healthz", handleHealth("apis"))
+	must("apis listen", http.ListenAndServe(addr, cors(mux)))
 }
 
 // POST /fraud/score — validates Bearer token, returns a deterministic fraud score.
@@ -155,7 +147,7 @@ func getASPublicKey() (*ecdsa.PublicKey, error) {
 		return cachedPub, nil
 	}
 
-	asURL := envOr("AS_URL", "http://localhost:8082")
+	asURL := envOr("AS_URL", "http://localhost:8081")
 	resp, err := http.Get(asURL + "/.well-known/jwks.json")
 	if err != nil {
 		return nil, err
