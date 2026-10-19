@@ -1,0 +1,58 @@
+services:
+  platform:
+    build:
+      context: .
+      dockerfile: services/platform/Dockerfile
+    ports:
+      - "8081:8081"   # SPIRE simulator
+      - "8082:8082"   # Authorization Server
+    environment:
+      SPIRE_ADDR: ":8081"
+      AS_ADDR: ":8082"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/healthz || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  workload:
+    build:
+      context: .
+      dockerfile: services/workload/Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      ADDR: ":8083"
+      SPIRE_URL: "http://platform:8081"
+      AS_URL: "http://platform:8082"
+      FRAUD_API_URL: "http://apis:8084"
+      COMPLIANCE_API_URL: "http://apis:8085"
+    depends_on:
+      platform:
+        condition: service_healthy
+
+  apis:
+    build:
+      context: .
+      dockerfile: services/apis/Dockerfile
+    ports:
+      - "8084:8084"   # fraud-api
+      - "8085:8085"   # compliance-reporter
+    environment:
+      FRAUD_ADDR: ":8084"
+      COMPLIANCE_ADDR: ":8085"
+      AS_URL: "http://platform:8082"
+    depends_on:
+      platform:
+        condition: service_healthy
+
+  # SPA served locally via a simple static server for engineer development.
+  # In production this is Cloudflare Pages — see spa/README.md.
+  spa:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./spa:/usr/share/nginx/html:ro
+    environment:
+      NGINX_HOST: localhost

@@ -1,0 +1,28 @@
+# Fly.io app: wimse-demo-workload
+# Runs the transaction-processor on 8083.
+# Depends on platform (SPIRE + AS) and apis (fraud + compliance) being deployed first.
+
+app = "wimse-demo-workload"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "services/workload/Dockerfile"
+
+[http_service]
+  internal_port = 8083
+  force_https   = true
+  auto_stop_machines  = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1
+
+[env]
+  ADDR              = ":8083"
+  SPIRE_URL         = "https://wimse-demo-platform.fly.dev"
+  AS_URL            = "https://wimse-demo-platform.fly.dev"     # port 8082 — update after deploy
+  FRAUD_API_URL     = "https://wimse-demo-apis.fly.dev"         # port 8084 — update after deploy
+  COMPLIANCE_API_URL = "https://wimse-demo-apis.fly.dev"        # port 8085 — update after deploy
