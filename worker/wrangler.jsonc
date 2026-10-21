@@ -1,0 +1,16 @@
+{
+  "name": "wimse-demo-worker",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-10-22",
+  "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "BASE_URL": "http://localhost:8787"
+  },
+  "env": {
+    "production": {
+      "vars": {
+        "BASE_URL": "https://wimse-demo-worker-production.jralmaraz1.workers.dev"
+      }
+    }
+  }
+}
