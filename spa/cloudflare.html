@@ -597,8 +597,9 @@ header {
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
+const PROD_WORKER = 'https://wimse-demo-worker-production.jralmaraz1.workers.dev';
 const params  = new URLSearchParams(location.search);
-let WORKER    = params.get('worker') || 'http://localhost:8787';
+let WORKER    = params.get('worker') || PROD_WORKER;
 let currentTab = 'detail';
 let scenarioData = null;
 let fedState = null;
