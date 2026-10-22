@@ -184,6 +184,28 @@ describe('WIMSE: SPIRE + AS', () => {
   });
 });
 
+// ── Scenario: multi-cloud microservices ──────────────────────────────────────
+
+describe('Scenario: multi-cloud microservices (pure WIMSE)', () => {
+  it('all 7 steps pass, outcome = approved', async () => {
+    const d = await getJSON('/api/scenario/microservices') as {
+      steps: { step: number; status: string }[];
+      outcome: string;
+    };
+    expect(d.outcome).toBe('approved');
+    expect(d.steps).toHaveLength(7);
+    d.steps.forEach(s => expect(s.status).toBe('ok'));
+  });
+
+  it('step 4 data contains cloud label', async () => {
+    const d = await getJSON('/api/scenario/microservices') as {
+      steps: { step: number; data?: { cloud?: string } }[];
+    };
+    const step4 = d.steps.find(s => s.step === 4);
+    expect(step4?.data?.cloud).toContain('Cloud A');
+  });
+});
+
 // ── Scenario endpoint ─────────────────────────────────────────────────────────
 
 describe('Scenario: B2B payment flow', () => {

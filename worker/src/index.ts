@@ -319,6 +319,110 @@ async function runB2BScenario(
   return { steps, outcome: 'approved' };
 }
 
+// ── Scenario: multi-cloud microservices (pure WIMSE, no OID-FED) ─────────────
+// Three internal services on different clouds each independently verify
+// the workload's identity via WIT + WPT — no shared secrets between them.
+
+async function runMicroservicesScenario(
+  s: State,
+): Promise<{ steps: ScenarioStep[]; outcome: 'approved' | 'rejected'; rejected_at?: number }> {
+  const steps: ScenarioStep[] = [];
+  const add = (step: number, name: string, status: 'ok' | 'rejected', detail: string, data?: Record<string, unknown>) => {
+    steps.push({ step, name, status, detail, data });
+  };
+
+  const base = s.fed.baseURL;
+
+  // Step 1: SPIRE attests workload → WIT
+  const witToken = await issueWIT(s.wim);
+  const { payload: witPayload } = decodeJWT(witToken);
+  add(1, 'SPIRE: workload attestation → WIT', 'ok',
+    `SPIRE attests the workload and issues a WIT. The IdP (${s.wim.idp.entityID}) signs it. cnf.jwk binds the workload's own public key — no other party holds the private key.`,
+    { iss: witPayload.iss, sub: witPayload.sub, typ: 'wit+jwt', cnf: 'EC P-256 workload key' });
+
+  // Step 2: SPIRE issues WAG
+  const wagToken = await issueWAG(s.wim, s.wim.idp.entityID);
+  const { payload: wagPayload } = decodeJWT(wagToken);
+  add(2, 'SPIRE: issue WAG (Workload Authorization Grant)', 'ok',
+    'SPIRE issues a scoped grant. The workload presents this to the AS to exchange for an access token. Scopes declare what services it may call.',
+    { iss: wagPayload.iss, sub: wagPayload.sub, scope: wagPayload.scope, typ: 'wag+jwt' });
+
+  // Step 3: AS validates WAG → issues AT (IdP is statically trusted — no OID-FED needed)
+  const wagResult = await verifyWAG(wagToken, s.wim.spire.key.publicKey, s.wim.spire.issuer, s.wim.as.issuer);
+  if (!wagResult.ok) {
+    add(3, 'AS: WAG validation failed', 'rejected', wagResult.reason ?? 'WAG invalid');
+    return { steps, outcome: 'rejected', rejected_at: 3 };
+  }
+  const cnfJWK = extractCnfJWK(witToken);
+  if (!cnfJWK) {
+    add(3, 'AS: issue access token', 'rejected', 'WIT missing cnf.jwk');
+    return { steps, outcome: 'rejected', rejected_at: 3 };
+  }
+  const atToken = await issueAccessToken(s.wim, cnfJWK, wagPayload.scope as string);
+  const { payload: atPayload } = decodeJWT(atToken);
+  add(3, 'AS: WAG → Access Token', 'ok',
+    'SPIRE is statically trusted. The AS verifies the WAG signature and issues an AT with cnf.jwk — the access token is cryptographically bound to the workload\'s public key.',
+    { iss: atPayload.iss, sub: atPayload.sub, scope: atPayload.scope, typ: 'at+jwt', cnf_bound: true });
+
+  // Step 4: Fraud Detection — Cloud A (US-East)
+  const fraudURI  = `${base}/internal/fraud/check`;
+  const fraudWPT  = await generateWPT(s.wim, fraudURI, witToken);
+  const fraudAT   = await verifyAccessToken(atToken, s.wim.as.key.publicKey, s.wim.as.issuer, `${base}/internal`);
+  if (!fraudAT.ok) {
+    add(4, 'Fraud Detection (Cloud A): AT verify', 'rejected', fraudAT.reason ?? 'AT invalid');
+    return { steps, outcome: 'rejected', rejected_at: 4 };
+  }
+  const fraudWPTR = await verifyWPT(fraudWPT, witToken, s.wim.workload.key.publicKey, fraudURI);
+  if (!fraudWPTR.ok) {
+    add(4, 'Fraud Detection (Cloud A): WPT verify', 'rejected', fraudWPTR.reason ?? 'WPT invalid');
+    return { steps, outcome: 'rejected', rejected_at: 4 };
+  }
+  add(4, 'Fraud Detection — Cloud A / US-East', 'ok',
+    'AT valid. WPT proves the caller holds cnf.jwk. The Fraud API shares no secret with the AS or the workload — it only needs the AS public key to verify the AT.',
+    { cloud: 'Cloud A / US-East', fraud_score: 0.08, threshold: 0.75, decision: 'PASS', secrets_shared: 0 });
+
+  // Step 5: Compliance Engine — Cloud B (EU-West)
+  const compURI  = `${base}/internal/compliance`;
+  const compWPT  = await generateWPT(s.wim, compURI, witToken);
+  const compAT   = await verifyAccessToken(atToken, s.wim.as.key.publicKey, s.wim.as.issuer, `${base}/internal`);
+  if (!compAT.ok) {
+    add(5, 'Compliance Engine (Cloud B): AT verify', 'rejected', compAT.reason ?? 'AT invalid');
+    return { steps, outcome: 'rejected', rejected_at: 5 };
+  }
+  const compWPTR = await verifyWPT(compWPT, witToken, s.wim.workload.key.publicKey, compURI);
+  if (!compWPTR.ok) {
+    add(5, 'Compliance Engine (Cloud B): WPT verify', 'rejected', compWPTR.reason ?? 'WPT invalid');
+    return { steps, outcome: 'rejected', rejected_at: 5 };
+  }
+  add(5, 'Compliance Engine — Cloud B / EU-West', 'ok',
+    'Independent verification on Cloud B. Same AT, fresh WPT with a different aud (this endpoint\'s URI). Compliance Engine has zero knowledge of Fraud Detection.',
+    { cloud: 'Cloud B / EU-West', compliance: 'AML/KYC PASS', regulation: 'EU 2023/1114', wpt_aud: 'per-endpoint binding' });
+
+  // Step 6: Settlement Gateway — Cloud C (APAC)
+  const settlementURI  = `${base}/internal/settlement`;
+  const settlementWPT  = await generateWPT(s.wim, settlementURI, witToken);
+  const settlementAT   = await verifyAccessToken(atToken, s.wim.as.key.publicKey, s.wim.as.issuer, `${base}/internal`);
+  if (!settlementAT.ok) {
+    add(6, 'Settlement Gateway (Cloud C): AT verify', 'rejected', settlementAT.reason ?? 'AT invalid');
+    return { steps, outcome: 'rejected', rejected_at: 6 };
+  }
+  const settlementWPTR = await verifyWPT(settlementWPT, witToken, s.wim.workload.key.publicKey, settlementURI);
+  if (!settlementWPTR.ok) {
+    add(6, 'Settlement Gateway (Cloud C): WPT verify', 'rejected', settlementWPTR.reason ?? 'WPT invalid');
+    return { steps, outcome: 'rejected', rejected_at: 6 };
+  }
+  add(6, 'Settlement Gateway — Cloud C / APAC', 'ok',
+    'Third independent verification. Each cloud receives the same AT but a unique WPT bound to its own endpoint URI. No cloud can replay the WPT to impersonate calls to another.',
+    { cloud: 'Cloud C / APAC', settlement: 'CLEARED', amount: '1250.00', currency: 'AUD' });
+
+  // Step 7: Complete
+  add(7, 'Transaction complete', 'ok',
+    '3 services across 3 clouds verified workload identity independently. Every hop has cryptographic proof. No shared secrets. No sidecar proxy. No internal CA.',
+    { clouds: 3, services: 3, hops_verified: 3, shared_secrets: 0, mechanism: 'WIT + WPT + AT' });
+
+  return { steps, outcome: 'approved' };
+}
+
 // ── Federation helpers (in-process, no HTTP) ──────────────────────────────────
 
 async function federationResolveLeafByEntityID(
@@ -380,7 +484,12 @@ export default {
     if (path === '/healthz')
       return json({ status: 'ok', service: 'wimse-demo-worker' });
 
-    // ── Scenario endpoint ─────────────────────────────────────────────────
+    // ── Scenario endpoints ────────────────────────────────────────────────
+    if (path === '/api/scenario/microservices') {
+      const result = await runMicroservicesScenario(s);
+      return json(result);
+    }
+
     if (path === '/api/scenario/b2b') {
       const idpParam = url.searchParams.get('idp') ?? 'keycloak';
       if (idpParam !== 'keycloak' && idpParam !== 'rogue')
