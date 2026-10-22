@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FinClear — WIMSE Identity Demo</title>
+  <style>
+    :root {
+      --bg:       #0d1117;
+      --surface:  #161b22;
+      --surface2: #21262d;
+      --border:   #30363d;
+      --blue:     #58a6ff;
+      --green:    #3fb950;
+      --orange:   #ffa657;
+      --purple:   #bc8cff;
+      --red:      #f85149;
+      --text:     #e6edf3;
+      --muted:    #7d8590;
+      --sans:     system-ui, -apple-system, sans-serif;
+      --mono:     "SF Mono", "Fira Code", Consolas, monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 15px; line-height: 1.6; }
+
+    /* header */
+    header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; }
+    .logo { font-weight: 700; font-size: 18px; color: var(--text); }
+    .logo span { color: var(--blue); }
+    .header-sub { font-size: 12px; color: var(--muted); }
+
+    /* layout */
+    .layout { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 55px); }
+
+    /* sidebar */
+    .sidebar { background: var(--surface); border-right: 1px solid var(--border); padding: 24px 0; }
+    .sidebar-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); padding: 0 20px 12px; }
+    .scenario-card { padding: 14px 20px; cursor: pointer; border-left: 3px solid transparent; transition: background 0.15s; }
+    .scenario-card:hover { background: var(--surface2); }
+    .scenario-card.active { border-left-color: var(--blue); background: rgba(88,166,255,0.08); }
+    .scenario-num { font-size: 10px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .scenario-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .scenario-desc { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .sidebar-sep { border: none; border-top: 1px solid var(--border); margin: 12px 20px; }
+
+    /* main */
+    main { padding: 32px; overflow-x: hidden; }
+    .scene { display: none; }
+    .scene.active { display: block; }
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .scene-lead { color: var(--muted); font-size: 14px; max-width: 680px; margin-bottom: 28px; line-height: 1.65; }
+
+    /* run panel */
+    .run-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 24px; margin-bottom: 24px; }
+    .run-panel label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; display: block; margin-bottom: 6px; }
+    .run-inputs { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; align-items: flex-end; }
+    .run-inputs input { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 14px; padding: 8px 12px; width: 160px; }
+    .run-inputs input:focus { outline: 2px solid var(--blue); }
+    .btn { background: var(--blue); color: #0d1117; font-weight: 700; font-size: 14px; border: none; border-radius: 6px; padding: 9px 20px; cursor: pointer; transition: opacity 0.15s; }
+    .btn:hover { opacity: 0.85; }
+    .btn:disabled { opacity: 0.4; cursor: default; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+    /* steps */
+    .steps { display: flex; flex-direction: column; gap: 12px; }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; opacity: 0; transform: translateY(8px); transition: opacity 0.3s ease, transform 0.3s ease; }
+    .step.visible { opacity: 1; transform: translateY(0); }
+    .step-header { display: flex; align-items: center; gap: 12px; padding: 14px 16px; cursor: pointer; }
+    .step-num { width: 24px; height: 24px; border-radius: 50%; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--muted); flex-shrink: 0; }
+    .step.done .step-num { background: rgba(63,185,80,0.2); border-color: var(--green); color: var(--green); }
+    .step-label { font-size: 14px; font-weight: 600; flex: 1; }
+    .step-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
+    .badge-green  { background: rgba(63,185,80,0.15);  color: var(--green); }
+    .badge-blue   { background: rgba(88,166,255,0.15); color: var(--blue); }
+    .badge-orange { background: rgba(255,166,87,0.15); color: var(--orange); }
+    .badge-purple { background: rgba(188,140,255,0.15);color: var(--purple); }
+    .step-body { display: none; padding: 0 16px 16px; border-top: 1px solid var(--border); }
+    .step-body.open { display: block; }
+    .step-explain { font-size: 13px; color: var(--muted); margin: 12px 0 10px; line-height: 1.6; }
+    pre.token-display { font-family: var(--mono); font-size: 11px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; overflow-x: auto; line-height: 1.7; white-space: pre-wrap; word-break: break-all; }
+
+    /* JWT colored parts */
+    .jwt-header    { color: var(--red); }
+    .jwt-payload   { color: var(--purple); }
+    .jwt-signature { color: var(--blue); }
+    .key { color: var(--blue); }
+    .val-str { color: var(--green); }
+    .val-num { color: var(--orange); }
+
+    /* architecture diagram */
+    .arch { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-bottom: 24px; overflow-x: auto; }
+    .arch-title { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin-bottom: 14px; }
+
+    /* summary card */
+    .summary-card { background: rgba(63,185,80,0.08); border: 1px solid rgba(63,185,80,0.3); border-radius: 8px; padding: 20px; margin-top: 16px; display: none; }
+    .summary-card.visible { display: block; }
+    .summary-title { font-size: 12px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .summary-item label { font-size: 11px; color: var(--muted); display: block; }
+    .summary-item span { font-size: 13px; font-weight: 600; color: var(--text); }
+
+    /* env config */
+    .env-note { background: rgba(255,166,87,0.08); border: 1px solid rgba(255,166,87,0.25); border-radius: 6px; padding: 10px 14px; font-size: 12px; color: var(--muted); margin-bottom: 20px; }
+    .env-note code { color: var(--orange); font-family: var(--mono); }
+
+    @media (max-width: 700px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); padding: 12px 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Fin<span>Clear</span></div>
+  <div class="header-sub">WIMSE Identity Demo — cross-cloud payment processing</div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-title">Demo Flows</div>
+    <div class="scenario-card active" onclick="showScene('full')">
+      <div class="scenario-num">Flow 1</div>
+      <div class="scenario-title">Full WIMSE Journey</div>
+      <div class="scenario-desc">WIT → WAG → access token → cross-cloud API calls</div>
+    </div>
+    <div class="scenario-card" onclick="showScene('wit')">
+      <div class="scenario-num">Flow 2</div>
+      <div class="scenario-title">WIT Deep Dive</div>
+      <div class="scenario-desc">Workload Identity Token — SPIFFE ID + key binding</div>
+    </div>
+    <div class="scenario-card" onclick="showScene('wag')">
+      <div class="scenario-num">Flow 3</div>
+      <div class="scenario-title">WAG Token Exchange</div>
+      <div class="scenario-desc">Zero-registration OAuth — platform grants access</div>
+    </div>
+    <hr class="sidebar-sep">
+    <div class="scenario-card" onclick="showScene('about')">
+      <div class="scenario-num">About</div>
+      <div class="scenario-title">Architecture</div>
+      <div class="scenario-desc">Services, deployment, and how to run locally</div>
+    </div>
+  </nav>
+
+  <main>
+    <!-- ── Flow 1: Full journey ── -->
+    <div class="scene active" id="scene-full">
+      <h1>Full WIMSE Journey</h1>
+      <p class="scene-lead">A payment transaction triggers a cross-cloud authentication chain. No passwords. No pre-shared secrets. Each service cryptographically proves its identity at every hop.</p>
+
+      <div id="env-banner" class="env-note" style="display:none">
+        Backend URL: <code id="backend-url-display"></code> — pointing at <strong>local Docker</strong>.
+        Remove <code>?backend=</code> from the URL to use the live hosted services.
+      </div>
+
+      <div class="run-panel">
+        <div class="run-inputs">
+          <div>
+            <label>Amount (EUR)</label>
+            <input type="number" id="inp-amount" value="1500" min="1">
+          </div>
+          <div>
+            <label>Merchant</label>
+            <input type="text" id="inp-merchant" value="AcmeCorp Ltd">
+          </div>
+          <button class="btn" id="run-btn" onclick="runDemo()">▶ Run Transaction</button>
+          <button class="btn btn-outline" onclick="resetDemo()">↺ Reset</button>
+        </div>
+        <div style="font-size:12px;color:var(--muted)">Each run generates fresh cryptographic keys and tokens — every execution is unique.</div>
+      </div>
+
+      <div class="steps" id="steps-container"></div>
+
+      <div class="summary-card" id="summary-card">
+        <div class="summary-title">✓ Transaction completed — full identity chain verified</div>
+        <div class="summary-grid" id="summary-grid"></div>
+      </div>
+    </div>
+
+    <!-- ── Flow 2: WIT deep dive ── -->
+    <div class="scene" id="scene-wit">
+      <h1>Workload Identity Token (WIT)</h1>
+      <p class="scene-lead">A WIT is a signed JWT that proves a workload's SPIFFE identity. Unlike a password, it is cryptographically bound to the workload's own key pair — it can only be used by the entity that holds the private key.</p>
+
+      <div class="run-panel">
+        <label>SPIFFE ID</label>
+        <div class="run-inputs">
+          <input type="text" id="wit-spiffe" value="spiffe://finclear.io/workload/transaction-processor" style="width:400px">
+          <button class="btn" onclick="runWITDemo()">Issue WIT</button>
+        </div>
+      </div>
+      <div id="wit-result"></div>
+    </div>
+
+    <!-- ── Flow 3: WAG deep dive ── -->
+    <div class="scene" id="scene-wag">
+      <h1>Workload Authorization Grant (WAG)</h1>
+      <p class="scene-lead">WAG lets a workload get an OAuth access token with <strong>zero pre-registration at the AS</strong>. The platform (SPIRE) registers once. Every workload it vouches for is accepted automatically — critical for ephemeral containers and AI agent fleets.</p>
+
+      <div class="run-panel">
+        <div class="run-inputs">
+          <div>
+            <label>SPIFFE ID</label>
+            <input type="text" id="wag-spiffe" value="spiffe://finclear.io/workload/transaction-processor" style="width:360px">
+          </div>
+          <div>
+            <label>Scope</label>
+            <input type="text" id="wag-scope" value="fraud:read compliance:write" style="width:240px">
+          </div>
+          <button class="btn" onclick="runWAGDemo()">Exchange Grant</button>
+        </div>
+      </div>
+      <div id="wag-result"></div>
+    </div>
+
+    <!-- ── About ── -->
+    <div class="scene" id="scene-about">
+      <h1>Architecture</h1>
+      <p class="scene-lead">Three Go services, each a Dockerfile. Three Fly.io VMs on the free tier. One Cloudflare Pages SPA. All inter-service calls use real HTTP with real JWTs.</p>
+
+      <div class="arch">
+        <div class="arch-title">Service map</div>
+        <svg viewBox="0 0 700 160" style="width:100%;max-width:700px;display:block">
+          <rect x="10"  y="40" width="145" height="80" rx="8" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+          <text x="82"  y="68" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="700" font-family="system-ui">Platform (Fly VM 1)</text>
+          <text x="82"  y="84" text-anchor="middle" fill="#7d8590" font-size="9"  font-family="system-ui">SPIRE sim :8081</text>
+          <text x="82"  y="97" text-anchor="middle" fill="#7d8590" font-size="9"  font-family="system-ui">Auth Server :8082</text>
+
+          <rect x="278" y="40" width="145" height="80" rx="8" fill="#161b22" stroke="#ffa657" stroke-width="1.5"/>
+          <text x="350" y="68" text-anchor="middle" fill="#ffa657" font-size="11" font-weight="700" font-family="system-ui">Workload (Fly VM 2)</text>
+          <text x="350" y="84" text-anchor="middle" fill="#7d8590" font-size="9"  font-family="system-ui">transaction-processor</text>
+          <text x="350" y="97" text-anchor="middle" fill="#7d8590" font-size="9"  font-family="system-ui">:8083</text>
+
+          <rect x="548" y="40" width="145" height="80" rx="8" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="620" y="68" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700" font-family="system-ui">APIs (Fly VM 3)</text>
+          <text x="620" y="84" text-anchor="middle" fill="#7d8590" font-size="9"  font-family="system-ui">fraud-api :8084</text>
+          <text x="620" y="97" text-anchor="middle" fill="#7d8590" font-size="9"  font-family="system-ui">compliance :8085</text>
+
+          <line x1="155" y1="80" x2="276" y2="80" stroke="#58a6ff" stroke-width="1.2" marker-end="url(#arr)"/>
+          <text x="215" y="72" fill="#58a6ff" font-size="8" text-anchor="middle" font-family="system-ui">WIT+WAG</text>
+          <line x1="423" y1="80" x2="546" y2="80" stroke="#3fb950" stroke-width="1.2" marker-end="url(#arr2)"/>
+          <text x="484" y="72" fill="#3fb950" font-size="8" text-anchor="middle" font-family="system-ui">Bearer+WPT</text>
+          <defs>
+            <marker id="arr"  markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#58a6ff"/></marker>
+            <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0,8 3,0 6" fill="#3fb950"/></marker>
+          </defs>
+          <text x="350" y="155" text-anchor="middle" fill="#7d8590" font-size="9" font-family="system-ui">SPA (Cloudflare Pages) — calls workload :8083 to trigger the full flow</text>
+        </svg>
+      </div>
+
+      <div class="run-panel">
+        <div class="arch-title" style="margin-bottom:12px">Run locally with Docker</div>
+        <pre class="token-display">git clone https://github.com/jralmaraz/wimse-demo
+cd wimse-demo
+docker compose up
+
+# Services available at:
+#   SPIRE sim   → http://localhost:8081
+#   Auth Server → http://localhost:8082
+#   Workload    → http://localhost:8083
+#   Fraud API   → http://localhost:8084
+#   Compliance  → http://localhost:8085
+#   SPA         → http://localhost:3000
+
+# Point the SPA at local services:
+# http://localhost:3000?backend=http://localhost:8083</pre>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── Config ───────────────────────────────────────────────────────────────────
+const params = new URLSearchParams(location.search);
+const BACKEND = params.get('backend') || 'https://wimse-demo-workload.fly.dev';
+const SPIRE   = params.get('spire')   || 'https://wimse-demo-platform.fly.dev';
+const AS      = params.get('as')      || 'https://wimse-demo-platform.fly.dev';
+
+if (params.get('backend')) {
+  document.getElementById('env-banner').style.display = 'block';
+  document.getElementById('backend-url-display').textContent = BACKEND;
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showScene(name) {
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+  const card = document.querySelector(`.scenario-card[onclick*="'${name}'"]`);
+  if (card) card.classList.add('active');
+  document.getElementById('scene-' + name).classList.add('active');
+}
+
+// ── Step definitions ─────────────────────────────────────────────────────────
+const STEP_META = {
+  key_ready:         { label: 'Key pair generated',           badge: 'WORKLOAD', badgeClass: 'badge-orange' },
+  wit_issued:        { label: 'WIT issued by SPIRE',          badge: 'wit+jwt',  badgeClass: 'badge-blue'   },
+  wag_grant_issued:  { label: 'WAG grant issued by SPIRE',    badge: 'wag+jwt',  badgeClass: 'badge-purple' },
+  access_token_issued:{ label: 'Access token issued by AS',   badge: 'at+jwt',   badgeClass: 'badge-green'  },
+  fraud_checked:     { label: 'Fraud API called (AWS)',        badge: 'API CALL', badgeClass: 'badge-orange' },
+  compliance_logged: { label: 'Compliance logged (Azure)',     badge: 'AUDIT',    badgeClass: 'badge-green'  },
+};
+
+const STEP_EXPLAIN = {
+  key_ready:         'The workload generates an EC P-256 key pair. The public key will be embedded in the WIT — binding the token to this exact process. No pre-configuration needed.',
+  wit_issued:        'SPIRE issued a <strong>Workload Identity Token</strong> (wit+jwt). It contains the workload\'s SPIFFE ID and its public key in a <code>cnf.jwk</code> claim. The WIT is signed by the platform key — not the workload\'s key.',
+  wag_grant_issued:  'SPIRE issued a <strong>Workload Authorization Grant</strong> (wag+jwt). The AS has never seen this workload before — but it trusts SPIRE (registered once). No per-workload registration required.',
+  access_token_issued:'The AS verified the WAG signature against the SPIRE platform key, consumed the <code>jti</code> (replay protection), and issued a scoped <strong>Bearer access token</strong> (at+jwt). The workload\'s SPIFFE ID is in <code>sub</code>.',
+  fraud_checked:     'The workload called the Fraud API on a different cloud (AWS simulation). It presented the Bearer token + a <strong>WPT proof</strong> binding the call to this exact URI. The API verified both before responding.',
+  compliance_logged: 'The workload called the Compliance Reporter (Azure simulation). The audit entry carries the workload\'s SPIFFE ID — a cryptographic identity, not a username — creating a verifiable trail across all three cloud regions.',
+};
+
+// ── Full Demo ─────────────────────────────────────────────────────────────────
+async function runDemo() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true; btn.textContent = '⏳ Running…';
+  resetDemo(false);
+
+  const amount   = parseFloat(document.getElementById('inp-amount').value) || 1500;
+  const merchant = document.getElementById('inp-merchant').value || 'AcmeCorp Ltd';
+
+  try {
+    const resp = await fetch(BACKEND + '/transaction/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, currency: 'EUR', merchant }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || resp.statusText);
+
+    const container = document.getElementById('steps-container');
+    for (let i = 0; i < data.steps.length; i++) {
+      await delay(i === 0 ? 0 : 320);
+      renderStep(container, data.steps[i], i + 1);
+    }
+    await delay(400);
+    renderSummary(data.summary);
+  } catch(e) {
+    renderError(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '▶ Run Transaction';
+  }
+}
+
+function renderStep(container, step, num) {
+  const meta = STEP_META[step.id] || { label: step.label, badge: '', badgeClass: '' };
+  const explain = STEP_EXPLAIN[step.id] || '';
+
+  const el = document.createElement('div');
+  el.className = 'step';
+  el.innerHTML = `
+    <div class="step-header" onclick="toggleStep(this)">
+      <div class="step-num">${num}</div>
+      <div class="step-label">${meta.label}</div>
+      ${meta.badge ? `<span class="step-badge ${meta.badgeClass}">${meta.badge}</span>` : ''}
+    </div>
+    <div class="step-body">
+      ${explain ? `<div class="step-explain">${explain}</div>` : ''}
+      ${renderPayload(step.payload)}
+    </div>`;
+  container.appendChild(el);
+
+  // Animate in
+  requestAnimationFrame(() => {
+    el.classList.add('done');
+    setTimeout(() => el.classList.add('visible'), 20);
+  });
+
+  // Auto-open steps with JWT parts
+  if (step.payload && (step.payload.parts || step.payload.wit || step.payload.grant || step.payload.access_token)) {
+    el.querySelector('.step-body').classList.add('open');
+  }
+}
+
+function renderPayload(payload) {
+  if (!payload) return '';
+  if (payload.parts) {
+    return renderJWT(payload.parts, payload.wit || payload.grant || payload.access_token || payload.compact);
+  }
+  return `<pre class="token-display">${syntaxHL(JSON.stringify(payload, null, 2))}</pre>`;
+}
+
+function renderJWT(parts, compact) {
+  if (!parts || !parts.header) return '';
+  const hdr  = JSON.stringify(parts.header,   null, 2);
+  const pay  = JSON.stringify(parts.payload,  null, 2);
+  const sig  = parts.signature || '';
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">
+      <span class="jwt-header">■ header</span> &nbsp;
+      <span class="jwt-payload">■ payload</span> &nbsp;
+      <span class="jwt-signature">■ signature</span>
+    </div>
+    <pre class="token-display"><span class="jwt-header">${esc(hdr)}</span>
+
+<span class="jwt-payload">${esc(pay)}</span>
+
+<span class="jwt-signature">${esc(sig)}</span></pre>`;
+}
+
+function renderSummary(summary) {
+  if (!summary) return;
+  const card = document.getElementById('summary-card');
+  const grid = document.getElementById('summary-grid');
+  grid.innerHTML = Object.entries(summary).map(([k, v]) =>
+    `<div class="summary-item"><label>${k.replace(/_/g,' ')}</label><span>${v}</span></div>`
+  ).join('');
+  card.classList.add('visible');
+}
+
+function renderError(msg) {
+  const container = document.getElementById('steps-container');
+  container.innerHTML = `<div style="background:rgba(248,81,73,0.1);border:1px solid rgba(248,81,73,0.3);border-radius:8px;padding:16px;color:#f85149;font-size:13px">
+    <strong>Error:</strong> ${esc(msg)}<br><br>
+    <span style="color:var(--muted)">Is the backend running? Check the Architecture tab for setup instructions.</span>
+  </div>`;
+}
+
+function toggleStep(header) {
+  header.nextElementSibling.classList.toggle('open');
+}
+
+function resetDemo(resetBtn = true) {
+  document.getElementById('steps-container').innerHTML = '';
+  document.getElementById('summary-card').classList.remove('visible');
+  if (resetBtn) {
+    const btn = document.getElementById('run-btn');
+    btn.disabled = false; btn.textContent = '▶ Run Transaction';
+  }
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── WIT demo ─────────────────────────────────────────────────────────────────
+async function runWITDemo() {
+  const spiffeId = document.getElementById('wit-spiffe').value;
+  const result = document.getElementById('wit-result');
+  result.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Issuing WIT…</div>';
+
+  try {
+    // Generate a workload key pair in browser (demo only — normally done in the workload process)
+    const kp = await crypto.subtle.generateKey({ name:'ECDSA', namedCurve:'P-256' }, true, ['sign']);
+    const pub = await crypto.subtle.exportKey('jwk', kp.publicKey);
+
+    const resp = await fetch(SPIRE + '/wit/issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spiffe_id: spiffeId, workload_pub_jwk: pub }),
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error);
+    result.innerHTML = `
+      <div style="margin-bottom:8px;font-size:13px;color:var(--muted)">Issued WIT for <code style="color:var(--orange)">${esc(spiffeId)}</code></div>
+      ${renderJWT(data.parts, data.wit)}`;
+  } catch(e) {
+    result.innerHTML = `<div style="color:var(--red);font-size:13px">${esc(e.message)}</div>`;
+  }
+}
+
+// ── WAG demo ──────────────────────────────────────────────────────────────────
+async function runWAGDemo() {
+  const spiffeId = document.getElementById('wag-spiffe').value;
+  const scope    = document.getElementById('wag-scope').value;
+  const result   = document.getElementById('wag-result');
+  result.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:8px 0">Issuing WAG grant and exchanging…</div>';
+
+  try {
+    // Step A: get WAG grant
+    const grantResp = await fetch(SPIRE + '/wag/issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spiffe_id: spiffeId, scope }),
+    });
+    const grantData = await grantResp.json();
+    if (!grantResp.ok) throw new Error(grantData.error);
+
+    // Step B: exchange at AS
+    const formData = new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion:  grantData.grant,
+      scope,
+    });
+    const atResp = await fetch(AS + '/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: formData,
+    });
+    const atData = await atResp.json();
+    if (!atResp.ok) throw new Error(atData.error);
+
+    result.innerHTML = `
+      <h3 style="font-size:13px;font-weight:700;color:var(--purple);margin:0 0 8px">WAG Grant (wag+jwt)</h3>
+      ${renderJWT(grantData.parts, grantData.grant)}
+      <h3 style="font-size:13px;font-weight:700;color:var(--green);margin:16px 0 8px">Access Token (at+jwt)</h3>
+      ${renderJWT(atData.parts, atData.access_token)}
+      <div style="margin-top:12px;font-size:12px;color:var(--muted)">
+        Try running again — you'll get a new <code>jti</code> each time. If you replay the <em>same</em> grant, the AS rejects it with a replay error.
+      </div>`;
+  } catch(e) {
+    result.innerHTML = `<div style="color:var(--red);font-size:13px">${esc(e.message)}</div>`;
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function syntaxHL(json) {
+  return esc(json)
+    .replace(/"([^"]+)":/g, '<span class="key">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="val-str">"$1"</span>')
+    .replace(/: (\d+)/g, ': <span class="val-num">$1</span>');
+}
+</script>
+</body>
+</html>
