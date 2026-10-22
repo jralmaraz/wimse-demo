@@ -3,18 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>WIMSE B2B Demo</title>
+<title>WIMSE Demo</title>
 <style>
-/* ── JetBrains Mono subset (latin, regular + bold) ────────────────────────── */
-@font-face {
-  font-family: 'JBMono';
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-  src: url('data:font/woff2;base64,d09GMgABAAAAAAYUAA4AAAAAD4QAAAXCAAEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAGhYbHBwcBmAAgRQRCAqMCIsHATYCJAMgBCAFgwAHIBvvDIuimgIREREREREUERERERERERERERERERERERER') format('woff2');
-}
-/* fallback — system mono shown if above subset doesn't load (it's a placeholder) */
-
 /* ── Tokens ───────────────────────────────────────────────────────────────── */
 :root {
   --bg:          #070C18;
@@ -29,10 +19,16 @@
   --reject-dim:  #3F0D0D;
   --rogue:       #F97316;
   --rogue-dim:   #431407;
+  --cloud-a:     #A78BFA;
+  --cloud-a-dim: #2E1065;
+  --cloud-b:     #34D399;
+  --cloud-b-dim: #022C22;
+  --cloud-c:     #FBBF24;
+  --cloud-c-dim: #291600;
   --muted:       #64748B;
   --text:        #E2E8F0;
   --text-faint:  #94A3B8;
-  --mono:        'JBMono', ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
+  --mono:        ui-monospace, 'Cascadia Code', 'SF Mono', Consolas, monospace;
   --sans:        system-ui, -apple-system, 'Segoe UI', sans-serif;
   --r:           6px;
 }
@@ -50,6 +46,12 @@
     --reject-dim: #FEE2E2;
     --rogue:      #EA580C;
     --rogue-dim:  #FFEDD5;
+    --cloud-a:    #7C3AED;
+    --cloud-a-dim:#EDE9FE;
+    --cloud-b:    #059669;
+    --cloud-b-dim:#D1FAE5;
+    --cloud-c:    #D97706;
+    --cloud-c-dim:#FEF3C7;
     --muted:      #94A3B8;
     --text:       #0F172A;
     --text-faint: #64748B;
@@ -68,42 +70,36 @@
   --reject-dim: #FEE2E2;
   --rogue:      #EA580C;
   --rogue-dim:  #FFEDD5;
+  --cloud-a:    #7C3AED;
+  --cloud-a-dim:#EDE9FE;
+  --cloud-b:    #059669;
+  --cloud-b-dim:#D1FAE5;
+  --cloud-c:    #D97706;
+  --cloud-c-dim:#FEF3C7;
   --muted:      #94A3B8;
   --text:       #0F172A;
   --text-faint: #64748B;
 }
 
-/* ── Reset + Base ─────────────────────────────────────────────────────────── */
+/* ── Reset ────────────────────────────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { font-size: 14px; }
-body {
-  font-family: var(--sans);
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  line-height: 1.5;
-}
-button { cursor: pointer; font: inherit; }
-a { color: var(--accent); }
-code, pre, .mono { font-family: var(--mono); }
+body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5; }
+button { cursor: pointer; font: inherit; border: none; }
+code, .mono { font-family: var(--mono); }
 
-/* ── Layout ───────────────────────────────────────────────────────────────── */
+/* ── App layout ───────────────────────────────────────────────────────────── */
 #app {
   display: grid;
   grid-template-rows: auto 1fr;
   grid-template-columns: 380px 1fr;
-  grid-template-areas:
-    "header header"
-    "left   right";
+  grid-template-areas: "header header" "left right";
   min-height: 100vh;
-  max-width: 1280px;
+  max-width: 1320px;
   margin: 0 auto;
 }
-@media (max-width: 800px) {
-  #app {
-    grid-template-columns: 1fr;
-    grid-template-areas: "header" "left" "right";
-  }
+@media (max-width: 860px) {
+  #app { grid-template-columns: 1fr; grid-template-areas: "header" "left" "right"; }
 }
 
 /* ── Header ───────────────────────────────────────────────────────────────── */
@@ -112,856 +108,702 @@ header {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 20px;
+  padding: 12px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
-.logo {
-  font-family: var(--mono);
-  font-size: 1rem;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: -0.02em;
-  flex: none;
-}
+.logo { font-family: var(--mono); font-size: 1rem; font-weight: 700; color: var(--accent); flex: none; }
 .logo span { color: var(--text-faint); font-weight: 400; }
 .header-sep { flex: 1; }
-.worker-cfg {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.worker-cfg { display: flex; align-items: center; gap: 8px; }
 .worker-cfg input {
-  font-family: var(--mono);
-  font-size: 0.8rem;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  color: var(--text);
-  padding: 5px 10px;
-  width: 240px;
-  outline: none;
+  font-family: var(--mono); font-size: 0.78rem;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: var(--r); color: var(--text); padding: 5px 10px; width: 260px; outline: none;
 }
 .worker-cfg input:focus { border-color: var(--accent); }
 #connect-btn {
-  background: var(--accent-dim);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  border-radius: var(--r);
-  padding: 5px 12px;
-  font-size: 0.8rem;
-  font-family: var(--mono);
-  transition: background 0.15s;
+  background: var(--accent-dim); color: var(--accent); border: 1px solid var(--accent);
+  border-radius: var(--r); padding: 5px 12px; font-size: 0.78rem; font-family: var(--mono);
 }
 #connect-btn:hover { background: var(--accent); color: var(--bg); }
-.conn-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--muted);
-  flex: none;
-}
-.conn-dot.ok    { background: var(--ok); }
+.conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; transition: background 0.3s; }
+.conn-dot.ok { background: var(--ok); }
 .conn-dot.error { background: var(--reject); }
 
 /* ── Left column ──────────────────────────────────────────────────────────── */
-#left {
-  grid-area: left;
-  border-right: 1px solid var(--border);
+#left { grid-area: left; border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+
+/* Scenario tabs */
+.scenario-tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+}
+.scenario-tab {
+  flex: 1; padding: 11px 8px; font-size: 0.78rem; font-family: var(--mono); font-weight: 600;
+  background: transparent; color: var(--text-faint); border-bottom: 2px solid transparent;
+  transition: all 0.15s; letter-spacing: 0.01em;
+}
+.scenario-tab:hover { color: var(--text); background: var(--surface2); }
+.scenario-tab.active { color: var(--accent); border-bottom-color: var(--accent); background: var(--surface); }
+.scenario-tab.b2b.active { color: var(--rogue); border-bottom-color: var(--rogue); }
+
+/* Scenario description + controls */
+.scenario-controls {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-}
-.scenario-btns {
-  display: flex;
   gap: 10px;
-  padding: 16px;
-  border-bottom: 1px solid var(--border);
 }
+.scenario-desc {
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+.run-row { display: flex; gap: 8px; }
 .run-btn {
-  flex: 1;
-  padding: 10px 0;
-  border-radius: var(--r);
-  border: 1px solid;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  transition: background 0.15s, color 0.15s;
+  flex: 1; padding: 9px 0; border-radius: var(--r); border: 1px solid;
+  font-family: var(--mono); font-size: 0.76rem; font-weight: 600; transition: background 0.15s, color 0.15s;
 }
-.run-btn.kc {
-  background: var(--accent-dim);
-  border-color: var(--accent);
-  color: var(--accent);
-}
-.run-btn.kc:hover, .run-btn.kc.active {
-  background: var(--accent);
-  color: var(--bg);
-}
-.run-btn.rogue {
-  background: var(--rogue-dim);
-  border-color: var(--rogue);
-  color: var(--rogue);
-}
-.run-btn.rogue:hover, .run-btn.rogue.active {
-  background: var(--rogue);
-  color: #fff;
-}
-.run-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.run-btn.ms      { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+.run-btn.ms:hover, .run-btn.ms.active { background: var(--accent); color: var(--bg); }
+.run-btn.kc      { background: var(--ok-dim); border-color: var(--ok); color: var(--ok); }
+.run-btn.kc:hover, .run-btn.kc.active { background: var(--ok); color: var(--bg); }
+.run-btn.rogue   { background: var(--rogue-dim); border-color: var(--rogue); color: var(--rogue); }
+.run-btn.rogue:hover, .run-btn.rogue.active { background: var(--rogue); color: #fff; }
+.run-btn:disabled { opacity: 0.38; cursor: not-allowed; }
 
-/* ── Outcome banner ───────────────────────────────────────────────────────── */
+/* Outcome banner */
 #outcome {
-  padding: 12px 16px;
-  font-family: var(--mono);
-  font-size: 0.82rem;
-  font-weight: 600;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 16px; font-family: var(--mono); font-size: 0.8rem; font-weight: 600;
+  align-items: center; gap: 10px; display: none; border-bottom: 1px solid var(--border);
 }
-#outcome.approved {
-  display: flex;
-  background: var(--ok-dim);
-  color: var(--ok);
-  border-bottom-color: var(--ok);
-}
-#outcome.rejected {
-  display: flex;
-  background: var(--reject-dim);
-  color: var(--reject);
-  border-bottom-color: var(--reject);
-}
+#outcome.approved { display: flex; background: var(--ok-dim); color: var(--ok); border-bottom-color: var(--ok); }
+#outcome.rejected { display: flex; background: var(--reject-dim); color: var(--reject); border-bottom-color: var(--reject); }
 
-/* ── Step list ────────────────────────────────────────────────────────────── */
-#steps {
-  flex: 1;
-  padding: 8px 0;
-  overflow-y: auto;
-}
+/* Step list */
+#steps { flex: 1; overflow-y: auto; padding: 4px 0; }
+
+/* step item */
 .step-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-  position: relative;
-  padding: 0;
-  cursor: pointer;
-  transition: background 0.1s;
+  display: flex; align-items: flex-start; position: relative;
+  cursor: pointer; transition: background 0.1s;
 }
 .step-item:hover { background: var(--surface2); }
 .step-item.active { background: var(--surface2); }
 
-/* connector line */
 .step-line {
-  position: absolute;
-  left: 30px;
-  top: 40px;
-  width: 2px;
-  bottom: 0;
-  background: var(--border);
-  transition: background 0.4s;
-  z-index: 0;
+  position: absolute; left: 30px; top: 40px; width: 2px; bottom: 0;
+  background: var(--border); transition: background 0.4s; z-index: 0;
 }
 .step-item:last-child .step-line { display: none; }
-.step-item.status-ok   .step-line { background: var(--ok); }
+.step-item.status-ok .step-line { background: var(--ok); }
 .step-item.status-reject .step-line { background: var(--reject); }
 
-.step-icon-col {
-  width: 60px;
-  padding: 14px 0 14px 16px;
-  flex: none;
-  position: relative;
-  z-index: 1;
-}
+.step-icon-col { width: 60px; padding: 13px 0 13px 16px; flex: none; position: relative; z-index: 1; }
 .step-icon {
-  width: 28px; height: 28px;
-  border-radius: 50%;
-  border: 2px solid var(--border);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--muted);
-  transition: all 0.3s;
-  flex: none;
+  width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border);
+  background: var(--surface); display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 0.72rem; font-weight: 700; color: var(--muted);
+  transition: all 0.3s; flex: none;
 }
 .step-item.status-ok     .step-icon { border-color: var(--ok);     color: var(--ok);     background: var(--ok-dim); }
 .step-item.status-reject .step-icon { border-color: var(--reject); color: var(--reject); background: var(--reject-dim); }
-.step-item.status-active .step-icon {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
-  animation: pulse 1s infinite;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
-}
 
-.step-body {
-  flex: 1;
-  padding: 12px 16px 12px 0;
-  min-width: 0;
-}
-.step-name {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.step-detail {
-  font-size: 0.72rem;
-  color: var(--text-faint);
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.step-chip {
-  display: inline-block;
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 3px;
-  margin-top: 4px;
-}
-.chip-ok     { background: var(--ok-dim);     color: var(--ok);     }
-.chip-reject { background: var(--reject-dim); color: var(--reject); }
-.chip-active { background: var(--accent-dim); color: var(--accent); }
+/* cloud-colored steps (4-6 in microservices) */
+.step-item.cloud-a .step-icon { border-color: var(--cloud-a); color: var(--cloud-a); background: var(--cloud-a-dim); }
+.step-item.cloud-a .step-line { background: var(--cloud-a); }
+.step-item.cloud-b .step-icon { border-color: var(--cloud-b); color: var(--cloud-b); background: var(--cloud-b-dim); }
+.step-item.cloud-b .step-line { background: var(--cloud-b); }
+.step-item.cloud-c .step-icon { border-color: var(--cloud-c); color: var(--cloud-c); background: var(--cloud-c-dim); }
+.step-item.cloud-c .step-line { background: var(--cloud-c); }
 
-/* ── Right panel ──────────────────────────────────────────────────────────── */
-#right {
-  grid-area: right;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+.step-body { flex: 1; padding: 11px 14px 11px 0; min-width: 0; }
+.step-name { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step-detail { font-size: 0.71rem; color: var(--text-faint); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.step-chips { display: flex; gap: 4px; margin-top: 4px; }
+.chip {
+  font-family: var(--mono); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.04em;
+  text-transform: uppercase; padding: 2px 6px; border-radius: 3px;
 }
+.chip-ok     { background: var(--ok-dim);      color: var(--ok); }
+.chip-reject { background: var(--reject-dim);  color: var(--reject); }
+.chip-a      { background: var(--cloud-a-dim); color: var(--cloud-a); }
+.chip-b      { background: var(--cloud-b-dim); color: var(--cloud-b); }
+.chip-c      { background: var(--cloud-c-dim); color: var(--cloud-c); }
+
+/* ── Right column ─────────────────────────────────────────────────────────── */
+#right { grid-area: right; display: flex; flex-direction: column; overflow: hidden; }
+
 .panel-header {
-  padding: 12px 20px;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface);
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  padding: 11px 20px; border-bottom: 1px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; gap: 12px;
 }
-.panel-title {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-.panel-sub { font-size: 0.78rem; color: var(--text-faint); flex: 1; }
-
-.panel-tabs {
-  display: flex;
-  gap: 4px;
-}
+.panel-title { font-family: var(--mono); font-size: 0.76rem; font-weight: 600; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.08em; }
+.panel-sub   { font-size: 0.78rem; color: var(--text-faint); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-tabs  { display: flex; gap: 4px; flex: none; }
 .tab-btn {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 600;
-  padding: 4px 10px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  background: transparent;
-  color: var(--text-faint);
-  transition: all 0.15s;
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 600; padding: 4px 9px;
+  border-radius: 4px; border: 1px solid var(--border); background: transparent; color: var(--text-faint);
 }
-.tab-btn:hover { color: var(--text); border-color: var(--muted); }
+.tab-btn:hover { color: var(--text); }
 .tab-btn.active { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 
-#detail-area {
-  flex: 1;
-  overflow-y: auto;
-  padding: 20px;
-}
+#detail-area { flex: 1; overflow-y: auto; padding: 18px 20px; }
 
-/* ── Detail card ─────────────────────────────────────────────────────────── */
-.detail-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
-  margin-bottom: 14px;
-  overflow: hidden;
+/* cards */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); margin-bottom: 12px; overflow: hidden;
 }
-.detail-card-hd {
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.card-hd {
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  font-family: var(--mono); font-size: 0.7rem; font-weight: 600;
+  color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 8px;
 }
-.detail-card-hd .tag {
-  font-size: 0.65rem;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: var(--surface2);
-  color: var(--accent);
-  border: 1px solid var(--accent-dim);
-  text-transform: none;
-  letter-spacing: 0;
+.card-hd .tag {
+  font-size: 0.62rem; padding: 2px 6px; border-radius: 3px;
+  background: var(--surface2); color: var(--accent); border: 1px solid var(--accent-dim);
+  text-transform: none; letter-spacing: 0;
 }
-.detail-card-body {
-  padding: 14px;
+.card-body { padding: 14px; }
+
+/* narrative */
+.narrative {
+  font-size: 0.8rem; line-height: 1.65; color: var(--text);
+  padding: 12px 14px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r); margin-bottom: 12px;
 }
+.narrative.ok     { border-left: 3px solid var(--ok); }
+.narrative.reject { border-left: 3px solid var(--reject); }
+.narrative.cloud-a { border-left: 3px solid var(--cloud-a); }
+.narrative.cloud-b { border-left: 3px solid var(--cloud-b); }
+.narrative.cloud-c { border-left: 3px solid var(--cloud-c); }
+
+/* kv table */
+.kv { width: 100%; border-collapse: collapse; font-size: 0.77rem; }
+.kv td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+.kv td:first-child { font-family: var(--mono); font-size: 0.7rem; color: var(--accent); white-space: nowrap; width: 150px; }
+.kv td:last-child  { word-break: break-all; }
+
+/* jwt syntax */
 .jwt-block {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  background: var(--bg);
-  border-radius: 4px;
-  padding: 12px;
-  overflow-x: auto;
-  white-space: pre;
-  color: var(--text);
-  line-height: 1.6;
+  font-family: var(--mono); font-size: 0.7rem; background: var(--bg); border-radius: 4px;
+  padding: 12px; overflow-x: auto; white-space: pre; line-height: 1.7;
 }
-.jwt-block .key   { color: var(--accent); }
-.jwt-block .str   { color: #86EFAC; }
-.jwt-block .num   { color: #FCA5A5; }
-.jwt-block .bool  { color: var(--rogue); }
+.jk { color: var(--accent); }
+.js { color: #86EFAC; }
+.jn { color: #FCA5A5; }
+.jb { color: var(--rogue); }
 
-/* step detail narrative */
-.step-narrative {
-  font-size: 0.82rem;
-  color: var(--text);
-  line-height: 1.6;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--r);
+/* ── Architecture panel ───────────────────────────────────────────────────── */
+.arch-section { margin-bottom: 20px; }
+.arch-title { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 10px; }
+.arch-flow {
+  display: flex; flex-direction: column; gap: 3px;
 }
-.step-narrative.ok     { border-left: 3px solid var(--ok); }
-.step-narrative.reject { border-left: 3px solid var(--reject); }
-
-/* KV table */
-.kv-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-.kv-table td { padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
-.kv-table td:first-child {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--accent);
-  white-space: nowrap;
-  width: 140px;
-}
-.kv-table td:last-child { word-break: break-all; color: var(--text); }
-
-/* federation state */
-.entity-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--border);
+.arch-node {
+  display: flex; align-items: center; gap: 12px; padding: 9px 14px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
   font-size: 0.78rem;
+}
+.arch-node .dot {
+  width: 10px; height: 10px; border-radius: 50%; flex: none;
+}
+.arch-node .node-name { font-weight: 600; flex: none; min-width: 160px; }
+.arch-node .node-desc { color: var(--text-faint); font-size: 0.72rem; }
+.arch-arrow {
+  text-align: center; color: var(--border); font-size: 0.8rem;
+  padding: 2px 0; font-family: var(--mono);
+}
+.arch-arrow span { color: var(--muted); font-size: 0.68rem; margin-left: 8px; }
+
+/* ── Federation panel ─────────────────────────────────────────────────────── */
+.entity-row {
+  display: flex; align-items: flex-start; gap: 10px; padding: 10px 0;
+  border-bottom: 1px solid var(--border); font-size: 0.77rem;
 }
 .entity-row:last-child { border-bottom: none; }
-.entity-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
-  flex: none;
-  margin-top: 5px;
-}
-.entity-id {
-  font-family: var(--mono);
-  font-size: 0.72rem;
-  color: var(--text-faint);
-  word-break: break-all;
-}
+.entity-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex: none; margin-top: 5px; }
+.entity-id  { font-family: var(--mono); font-size: 0.7rem; color: var(--text-faint); word-break: break-all; }
 .entity-marks { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .mark-chip {
-  font-family: var(--mono);
-  font-size: 0.62rem;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: var(--accent-dim);
-  color: var(--accent);
-  border: 1px solid;
-  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+  font-family: var(--mono); font-size: 0.6rem; padding: 2px 6px; border-radius: 3px;
+  background: var(--accent-dim); color: var(--accent);
 }
-.mark-chip.rogue { background: var(--rogue-dim); color: var(--rogue); border-color: var(--rogue-dim); }
+.mark-chip.warn { background: var(--rogue-dim); color: var(--rogue); }
 
-/* empty state */
-.empty-state {
-  text-align: center;
-  padding: 60px 20px;
-  color: var(--text-faint);
-}
-.empty-state .big {
-  font-family: var(--mono);
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--border);
-  margin-bottom: 12px;
-}
-.empty-state p { font-size: 0.82rem; line-height: 1.7; }
+/* ── Empty + error ────────────────────────────────────────────────────────── */
+.empty { text-align: center; padding: 50px 20px; color: var(--text-faint); }
+.empty .big { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; color: var(--border); margin-bottom: 10px; }
+.empty p { font-size: 0.8rem; line-height: 1.7; }
 
-/* error toast */
 #error-toast {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  background: var(--reject-dim);
-  color: var(--reject);
-  border: 1px solid var(--reject);
-  border-radius: var(--r);
-  padding: 10px 16px;
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  max-width: 400px;
-  display: none;
-  z-index: 100;
-  animation: slideup 0.2s ease;
+  position: fixed; bottom: 20px; right: 20px;
+  background: var(--reject-dim); color: var(--reject); border: 1px solid var(--reject);
+  border-radius: var(--r); padding: 10px 16px; font-family: var(--mono); font-size: 0.76rem;
+  max-width: 420px; display: none; z-index: 100;
 }
-@keyframes slideup { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-/* focus */
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 </style>
 </head>
 <body>
-
 <div id="app">
+
+  <!-- ── Header ──────────────────────────────────────────────────────────── -->
   <header>
     <div class="logo">WIMSE<span>·demo</span></div>
-    <div style="font-size:0.78rem;color:var(--text-faint)">B2B Cross-Cloud Authentication</div>
+    <div style="font-size:0.76rem;color:var(--text-faint)">Workload Identity in Multi-System Environments</div>
     <div class="header-sep"></div>
     <div class="worker-cfg">
       <div class="conn-dot" id="conn-dot"></div>
-      <input id="worker-url" type="text" spellcheck="false"
-             placeholder="http://localhost:8787"
-             aria-label="Worker base URL">
+      <input id="worker-url" type="text" spellcheck="false" aria-label="Worker base URL">
       <button id="connect-btn">connect</button>
     </div>
   </header>
 
+  <!-- ── Left column ─────────────────────────────────────────────────────── -->
   <div id="left">
-    <div class="scenario-btns">
-      <button class="run-btn kc"    id="btn-kc"    title="Keycloak is in the federation and holds certified-idp trust mark">Run: Keycloak (trusted)</button>
-      <button class="run-btn rogue" id="btn-rogue" title="Rogue IdP is not registered in the federation — rejected at step 4">Run: Rogue IdP</button>
+    <div class="scenario-tabs">
+      <button class="scenario-tab active" id="tab-ms"  onclick="selectScenario('ms')">Multi-Cloud</button>
+      <button class="scenario-tab b2b"   id="tab-b2b" onclick="selectScenario('b2b')">B2B + OID-FED</button>
     </div>
-    <div id="outcome"></div>
-    <div id="steps">
-      <div class="empty-state">
-        <div class="big">—</div>
-        <p>Choose a scenario above.<br>Steps appear as the protocol runs.</p>
+
+    <div class="scenario-controls" id="ctrl-ms">
+      <div class="scenario-desc">WIT · WPT · WAG across 3 clouds — no shared secrets, no sidecar</div>
+      <div class="run-row">
+        <button class="run-btn ms" id="btn-ms" onclick="runMs()">Run multi-cloud scenario</button>
       </div>
     </div>
+
+    <div class="scenario-controls" id="ctrl-b2b" style="display:none">
+      <div class="scenario-desc">OID-FED dynamic trust — Keycloak (certified) vs Rogue IdP</div>
+      <div class="run-row">
+        <button class="run-btn kc"    id="btn-kc"    onclick="runB2b('keycloak')">Keycloak (trusted)</button>
+        <button class="run-btn rogue" id="btn-rogue" onclick="runB2b('rogue')">Rogue IdP</button>
+      </div>
+    </div>
+
+    <div id="outcome"></div>
+    <div id="steps"><div class="empty"><div class="big">—</div><p>Choose a scenario above.<br>Steps appear as the protocol runs.</p></div></div>
   </div>
 
+  <!-- ── Right column ────────────────────────────────────────────────────── -->
   <div id="right">
     <div class="panel-header">
       <div class="panel-title" id="panel-title">Select a step</div>
-      <div class="panel-sub" id="panel-sub"></div>
+      <div class="panel-sub"   id="panel-sub"></div>
       <div class="panel-tabs">
-        <button class="tab-btn active" id="tab-detail" onclick="switchTab('detail')">Detail</button>
-        <button class="tab-btn"        id="tab-fed"    onclick="switchTab('fed')">Federation</button>
+        <button class="tab-btn active" id="rtab-detail" onclick="switchRTab('detail')">Detail</button>
+        <button class="tab-btn"        id="rtab-arch"   onclick="switchRTab('arch')">Architecture</button>
+        <button class="tab-btn"        id="rtab-fed"    onclick="switchRTab('fed')">Federation</button>
       </div>
     </div>
     <div id="detail-area">
-      <div class="empty-state" id="empty-right">
-        <div class="big">↑</div>
-        <p>Run a scenario to see the<br>WIMSE + OID-FED protocol in action.</p>
-      </div>
+      <div class="empty"><div class="big">↑</div><p>Run a scenario to see the protocol in action.</p></div>
     </div>
   </div>
-</div>
 
+</div>
 <div id="error-toast"></div>
 
 <script>
 // ── Config ────────────────────────────────────────────────────────────────────
-const PROD_WORKER = 'https://wimse-demo-worker-production.jralmaraz1.workers.dev';
-const params  = new URLSearchParams(location.search);
-let WORKER    = params.get('worker') || PROD_WORKER;
-let currentTab = 'detail';
-let scenarioData = null;
-let fedState = null;
-let activeStep = null;
-let running = false;
+const PROD = 'https://wimse-demo-worker-production.jralmaraz1.workers.dev';
+const params = new URLSearchParams(location.search);
+let WORKER = params.get('worker') || PROD;
 
-// ── Init ──────────────────────────────────────────────────────────────────────
+let currentScenario = 'ms';   // 'ms' | 'b2b'
+let currentRTab     = 'detail';
+let scenarioData    = null;
+let fedState        = null;
+let activeStep      = null;
+let running         = false;
+
+// Cloud coloring by step number in microservices scenario
+const MS_CLOUD = { 4: 'cloud-a', 5: 'cloud-b', 6: 'cloud-c' };
+const CLOUD_CHIP = { 'cloud-a': 'chip-a', 'cloud-b': 'chip-b', 'cloud-c': 'chip-c' };
+const CLOUD_LABEL = { 'cloud-a': 'Cloud A', 'cloud-b': 'Cloud B', 'cloud-c': 'Cloud C' };
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
 document.getElementById('worker-url').value = WORKER;
-
-document.getElementById('connect-btn').onclick = async () => {
+document.getElementById('connect-btn').onclick = () => {
   WORKER = document.getElementById('worker-url').value.trim().replace(/\/$/, '');
-  await checkHealth();
+  checkHealth();
 };
-
-document.getElementById('worker-url').onkeydown = e => {
-  if (e.key === 'Enter') document.getElementById('connect-btn').click();
-};
-
-document.getElementById('btn-kc').onclick    = () => runScenario('keycloak');
-document.getElementById('btn-rogue').onclick = () => runScenario('rogue');
+document.getElementById('worker-url').onkeydown = e => { if (e.key === 'Enter') checkHealth(); };
 
 async function checkHealth() {
   const dot = document.getElementById('conn-dot');
   try {
     const r = await fetch(`${WORKER}/healthz`);
-    if (r.ok) {
-      dot.className = 'conn-dot ok';
-      await loadFedState();
-    } else {
-      dot.className = 'conn-dot error';
-    }
-  } catch {
-    dot.className = 'conn-dot error';
-  }
+    dot.className = r.ok ? 'conn-dot ok' : 'conn-dot error';
+    if (r.ok) loadFedState();
+  } catch { dot.className = 'conn-dot error'; }
 }
 
 async function loadFedState() {
-  try {
-    const r = await fetch(`${WORKER}/api/state`);
-    fedState = await r.json();
-    if (currentTab === 'fed') renderFedPanel();
-  } catch {}
+  try { fedState = await (await fetch(`${WORKER}/api/state`)).json(); } catch {}
 }
 
-// ── Run scenario ──────────────────────────────────────────────────────────────
-async function runScenario(idp) {
+// ── Scenario switcher ─────────────────────────────────────────────────────────
+function selectScenario(s) {
+  currentScenario = s;
+  document.getElementById('tab-ms').classList.toggle('active',   s === 'ms');
+  document.getElementById('tab-b2b').classList.toggle('active',  s === 'b2b');
+  document.getElementById('ctrl-ms').style.display  = s === 'ms'  ? '' : 'none';
+  document.getElementById('ctrl-b2b').style.display = s === 'b2b' ? '' : 'none';
+  // reset
+  scenarioData = null; activeStep = null;
+  document.getElementById('outcome').className = '';
+  document.getElementById('outcome').style.display = 'none';
+  document.getElementById('steps').innerHTML = '<div class="empty"><div class="big">—</div><p>Run a scenario to begin.</p></div>';
+  clearRight();
+  // fed tab only meaningful in b2b
+  document.getElementById('rtab-fed').style.display = s === 'b2b' ? '' : 'none';
+  if (currentRTab === 'fed' && s === 'ms') switchRTab('detail');
+}
+
+// ── Run scenarios ─────────────────────────────────────────────────────────────
+async function runMs() {
+  await runScenario('microservices', null);
+}
+async function runB2b(idp) {
+  await runScenario('b2b', idp);
+}
+
+async function runScenario(type, idp) {
   if (running) return;
   running = true;
 
-  const btnKC    = document.getElementById('btn-kc');
-  const btnRogue = document.getElementById('btn-rogue');
-  btnKC.disabled    = true;
-  btnRogue.disabled = true;
-  btnKC.classList.toggle('active',    idp === 'keycloak');
-  btnRogue.classList.toggle('active', idp === 'rogue');
+  // button state
+  ['btn-ms','btn-kc','btn-rogue'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.disabled = true;
+  });
+  const activeBtn = type === 'microservices' ? 'btn-ms' : (idp === 'keycloak' ? 'btn-kc' : 'btn-rogue');
+  document.getElementById(activeBtn)?.classList.add('active');
 
-  // Reset UI
   document.getElementById('outcome').className = '';
   document.getElementById('outcome').style.display = 'none';
   document.getElementById('steps').innerHTML = '';
-  document.getElementById('empty-right').style.display = 'none';
-  scenarioData = null;
-  activeStep   = null;
-  clearDetailArea();
+  scenarioData = null; activeStep = null;
+  clearRight();
+
+  const url = type === 'microservices'
+    ? `${WORKER}/api/scenario/microservices`
+    : `${WORKER}/api/scenario/b2b?idp=${idp}`;
 
   try {
-    const r = await fetch(`${WORKER}/api/scenario/b2b?idp=${idp}`);
+    const r = await fetch(url);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     scenarioData = await r.json();
   } catch (e) {
     showError(`Worker unreachable: ${e.message}. Is it running at ${WORKER}?`);
     running = false;
-    btnKC.disabled    = false;
-    btnRogue.disabled = false;
-    document.getElementById('empty-right').style.display = '';
+    ['btn-ms','btn-kc','btn-rogue'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.disabled = false; el.classList.remove('active'); }
+    });
+    document.getElementById('steps').innerHTML = '<div class="empty"><div class="big">—</div><p>Could not reach Worker.</p></div>';
     return;
   }
 
-  // Animate steps
   for (let i = 0; i < scenarioData.steps.length; i++) {
-    const step = scenarioData.steps[i];
-    appendStep(step, i, scenarioData.steps.length);
-    await delay(180);
-    if (step.status === 'rejected') break;
+    appendStep(scenarioData.steps[i], i, scenarioData.steps.length, type);
+    await delay(160);
+    if (scenarioData.steps[i].status === 'rejected') break;
   }
 
-  // Outcome banner
-  showOutcome(scenarioData);
-
-  // Auto-select first step
-  const first = document.querySelector('.step-item');
-  if (first) first.click();
+  showOutcome(scenarioData, type, idp);
+  document.querySelector('.step-item')?.click();
 
   running = false;
-  btnKC.disabled    = false;
-  btnRogue.disabled = false;
+  ['btn-ms','btn-kc','btn-rogue'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.disabled = false; el.classList.remove('active'); }
+  });
 }
 
-function appendStep(step, idx, total) {
+function appendStep(step, idx, total, type) {
+  const isCloud = type === 'microservices' && MS_CLOUD[step.step];
+  const cloudClass = isCloud ? MS_CLOUD[step.step] : '';
+  const statusClass = step.status === 'ok' ? 'status-ok' : 'status-reject';
+
   const el = document.createElement('div');
-  el.className = `step-item status-${step.status === 'ok' ? 'ok' : 'reject'}`;
+  el.className = `step-item ${statusClass} ${cloudClass}`;
   el.dataset.idx = idx;
+
+  const chipHtml = isCloud
+    ? `<span class="chip ${CLOUD_CHIP[cloudClass]}">${CLOUD_LABEL[cloudClass]}</span>`
+    : `<span class="chip ${step.status === 'ok' ? 'chip-ok' : 'chip-reject'}">${step.status}</span>`;
+
   el.innerHTML = `
     <div class="step-icon-col">
       <div class="step-icon">${step.step}</div>
       ${idx < total - 1 ? '<div class="step-line"></div>' : ''}
     </div>
     <div class="step-body">
-      <div class="step-name">${escHtml(step.name)}</div>
-      <div class="step-detail">${escHtml(step.detail)}</div>
-      <span class="step-chip ${step.status === 'ok' ? 'chip-ok' : 'chip-reject'}">${step.status}</span>
+      <div class="step-name">${esc(step.name)}</div>
+      <div class="step-detail">${esc(step.detail)}</div>
+      <div class="step-chips">${chipHtml}</div>
     </div>`;
-  el.onclick = () => selectStep(idx);
+  el.onclick = () => selectStep(idx, type);
   document.getElementById('steps').appendChild(el);
 
-  // Subtle entrance
-  el.style.opacity = '0';
-  el.style.transform = 'translateX(-6px)';
+  el.style.opacity = '0'; el.style.transform = 'translateX(-6px)';
   requestAnimationFrame(() => {
-    el.style.transition = 'opacity 0.25s ease, transform 0.25s ease';
-    el.style.opacity = '1';
-    el.style.transform = 'none';
+    el.style.transition = 'opacity 0.22s ease, transform 0.22s ease';
+    el.style.opacity = '1'; el.style.transform = 'none';
   });
 }
 
-function showOutcome(data) {
+function showOutcome(data, type, idp) {
   const el = document.getElementById('outcome');
   if (data.outcome === 'approved') {
     el.className = 'approved';
-    el.innerHTML = `<span style="font-size:1rem">✓</span> Transaction approved — all 9 steps passed`;
+    const n = data.steps.length;
+    el.innerHTML = `<span>✓</span> ${n} steps passed — ${type === 'microservices' ? '3 clouds, no shared secrets' : 'transaction approved'}`;
   } else {
     el.className = 'rejected';
-    el.innerHTML = `<span style="font-size:1rem">✗</span> Rejected at step ${data.rejected_at} — IdP not trusted by federation`;
+    el.innerHTML = `<span>✗</span> Rejected at step ${data.rejected_at} — ${type === 'b2b' ? `${idp === 'rogue' ? 'IdP' : 'issuer'} not trusted by federation` : 'verification failed'}`;
   }
 }
 
 // ── Step selection ────────────────────────────────────────────────────────────
-function selectStep(idx) {
+function selectStep(idx, type) {
   activeStep = idx;
-  document.querySelectorAll('.step-item').forEach(el => {
-    el.classList.toggle('active', +el.dataset.idx === idx);
-  });
-
-  if (currentTab === 'detail') renderDetailPanel(idx);
-  else if (currentTab === 'fed') renderFedPanel();
+  document.querySelectorAll('.step-item').forEach(el => el.classList.toggle('active', +el.dataset.idx === idx));
+  if (currentRTab === 'detail')       renderDetail(idx, type || currentScenario);
+  else if (currentRTab === 'arch')    renderArch();
+  else if (currentRTab === 'fed')     renderFed();
 }
 
-function switchTab(tab) {
-  currentTab = tab;
-  document.getElementById('tab-detail').classList.toggle('active', tab === 'detail');
-  document.getElementById('tab-fed').classList.toggle('active',    tab === 'fed');
-
-  if (tab === 'detail' && activeStep !== null) renderDetailPanel(activeStep);
-  else if (tab === 'detail') clearDetailArea();
-  else renderFedPanel();
+function switchRTab(tab) {
+  currentRTab = tab;
+  ['detail','arch','fed'].forEach(t => document.getElementById(`rtab-${t}`)?.classList.toggle('active', t === tab));
+  if (tab === 'detail') { activeStep !== null ? renderDetail(activeStep, currentScenario) : clearRight(); }
+  else if (tab === 'arch') renderArch();
+  else renderFed();
 }
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
-function renderDetailPanel(idx) {
+function renderDetail(idx, scenario) {
   if (!scenarioData) return;
   const step = scenarioData.steps[idx];
   document.getElementById('panel-title').textContent = `Step ${step.step}`;
-  document.getElementById('panel-sub').textContent    = step.name;
+  document.getElementById('panel-sub').textContent   = step.name;
+
+  const isCloud = scenario === 'ms' && MS_CLOUD[step.step];
+  const narrativeClass = isCloud ? MS_CLOUD[step.step] : step.status;
 
   const area = document.getElementById('detail-area');
   area.innerHTML = '';
 
-  // Narrative card
   const narr = document.createElement('div');
-  narr.className = `step-narrative ${step.status}`;
+  narr.className = `narrative ${narrativeClass}`;
   narr.textContent = step.detail;
   area.appendChild(narr);
 
   if (step.data && Object.keys(step.data).length) {
-    const card = makeCard('Protocol data', typ(step));
-    const table = document.createElement('table');
-    table.className = 'kv-table';
+    const c = makeCard('Protocol data', '');
+    const t = document.createElement('table');
+    t.className = 'kv';
     for (const [k, v] of Object.entries(step.data)) {
       const tr = document.createElement('tr');
-      const val = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
-      tr.innerHTML = `<td>${escHtml(k)}</td><td>${escHtml(val)}</td>`;
-      table.appendChild(tr);
+      tr.innerHTML = `<td>${esc(k)}</td><td>${esc(typeof v === 'object' ? JSON.stringify(v) : String(v))}</td>`;
+      t.appendChild(tr);
     }
-    card.querySelector('.detail-card-body').appendChild(table);
-    area.appendChild(card);
+    c.querySelector('.card-body').appendChild(t);
+    area.appendChild(c);
   }
 
-  // Show JWT structures for token-issuing steps
-  addJWTExamples(step, area);
+  addJWTExamples(step, scenario, area);
 }
 
-function addJWTExamples(step, area) {
-  const stepNum = step.step;
-  const examples = {
-    1: [
-      { label: 'WIT header', tag: 'wit+jwt', obj: { alg: 'ES256', typ: 'wit+jwt', kid: 'kc-prot-1' } },
-      { label: 'WIT payload', tag: 'wit+jwt', obj: { iss: '…/idp/keycloak', sub: 'spiffe://finclear.io/workload/…', aud: ['…/as'], cnf: { jwk: { kty: 'EC', crv: 'P-256', use: 'sig' } } } },
-    ],
-    2: [
-      { label: 'WAG header', tag: 'wag+jwt', obj: { alg: 'ES256', typ: 'wag+jwt', kid: 'spire-1' } },
-      { label: 'WAG payload', tag: 'wag+jwt', obj: { iss: '…/spire', sub: 'spiffe://finclear.io/workload/…', scope: 'fraud:read compliance:write partner:verify', wit_iss: '…/idp/keycloak' } },
-    ],
-    5: [
-      { label: 'Access Token header', tag: 'at+jwt', obj: { alg: 'ES256', typ: 'at+jwt', kid: 'as-1' } },
-      { label: 'Access Token payload', tag: 'at+jwt', obj: { iss: '…/as', sub: 'spiffe://finclear.io/workload/…', cnf: { jwk: { kty: 'EC', crv: 'P-256', use: 'sig' } }, scope: 'fraud:read compliance:write partner:verify' } },
-    ],
-    8: [
-      { label: 'resolve-response', tag: 'resolve-response+jwt', obj: { iss: '…/ta', sub: '…/idp/keycloak', trust_anchor: '…/ta', trust_chain: ['[EC JWT]', '[SubStmt JWT]', '[TA EC JWT]'], metadata: { openid_provider: { issuer: '…/idp/keycloak', jwks_uri: '…/idp/keycloak/protocol/openid-connect/certs' } } } },
-    ],
-  };
+const MS_JWT_EXAMPLES = {
+  1: [{ label:'WIT header', tag:'wit+jwt',         obj:{ alg:'ES256', typ:'wit+jwt',  kid:'kc-prot-1' } },
+      { label:'WIT payload',tag:'wit+jwt',          obj:{ iss:'…/idp/keycloak', sub:'spiffe://finclear.io/workload/…', cnf:{ jwk:{ kty:'EC', crv:'P-256', use:'sig' } } } }],
+  2: [{ label:'WAG header', tag:'wag+jwt',          obj:{ alg:'ES256', typ:'wag+jwt', kid:'spire-1' } },
+      { label:'WAG payload',tag:'wag+jwt',           obj:{ iss:'…/spire', sub:'spiffe://finclear.io/workload/…', scope:'fraud:read compliance:write settlement:write' } }],
+  3: [{ label:'Access Token header', tag:'at+jwt',  obj:{ alg:'ES256', typ:'at+jwt',  kid:'as-1' } },
+      { label:'Access Token payload',tag:'at+jwt',   obj:{ iss:'…/as', sub:'spiffe://finclear.io/workload/…', cnf:{ jwk:{ kty:'EC', crv:'P-256' } }, scope:'fraud:read compliance:write settlement:write' } }],
+  4: [{ label:'WPT — Cloud A call', tag:'application/wpt+jwt', obj:{ aud:['…/internal/fraud/check'], wth:'SHA-256(WIT)', iat:1000, exp:1300 } }],
+  5: [{ label:'WPT — Cloud B call', tag:'application/wpt+jwt', obj:{ aud:['…/internal/compliance'],  wth:'SHA-256(WIT)', iat:1000, exp:1300 } }],
+  6: [{ label:'WPT — Cloud C call', tag:'application/wpt+jwt', obj:{ aud:['…/internal/settlement'],  wth:'SHA-256(WIT)', iat:1000, exp:1300 } }],
+};
+const B2B_JWT_EXAMPLES = {
+  1: MS_JWT_EXAMPLES[1],
+  2: MS_JWT_EXAMPLES[2],
+  4: [{ label:'resolve-response', tag:'resolve-response+jwt', obj:{ iss:'…/ta', sub:'…/idp/keycloak', trust_anchor:'…/ta', trust_chain:['[EC JWT]','[SubStmt JWT]','[TA EC JWT]'], metadata:{ openid_provider:{ jwks_uri:'…/certs' } } } }],
+  5: MS_JWT_EXAMPLES[3],
+  8: [{ label:'RegulatoryHub — resolve-response', tag:'resolve-response+jwt', obj:{ iss:'…/ta', sub:'…/idp/keycloak', trust_chain:['…','…','…'], metadata:{ openid_provider:{ jwks_uri:'…/certs' } } } }],
+};
 
-  if (!examples[stepNum]) return;
-  for (const ex of examples[stepNum]) {
-    const card = makeCard(ex.label, ex.tag);
+function addJWTExamples(step, scenario, area) {
+  const map = scenario === 'ms' ? MS_JWT_EXAMPLES : B2B_JWT_EXAMPLES;
+  const examples = map[step.step];
+  if (!examples) return;
+  for (const ex of examples) {
+    const c = makeCard(ex.label, ex.tag);
     const pre = document.createElement('div');
     pre.className = 'jwt-block';
-    pre.innerHTML = syntaxHighlight(ex.obj);
-    card.querySelector('.detail-card-body').appendChild(pre);
-    area.appendChild(card);
+    pre.innerHTML = syntaxHL(ex.obj);
+    c.querySelector('.card-body').appendChild(pre);
+    area.appendChild(c);
   }
 }
 
-function makeCard(label, tag) {
-  const card = document.createElement('div');
-  card.className = 'detail-card';
-  card.innerHTML = `
-    <div class="detail-card-hd">
-      ${escHtml(label)}
-      ${tag ? `<span class="tag">${escHtml(tag)}</span>` : ''}
-    </div>
-    <div class="detail-card-body"></div>`;
-  return card;
-}
-
-function typ(step) {
-  const map = { 1: 'wit+jwt', 2: 'wag+jwt', 5: 'at+jwt', 6: 'application/wpt+jwt', 7: 'application/wpt+jwt', 8: 'resolve-response+jwt' };
-  return map[step.step] || '';
-}
-
-// ── Federation panel ──────────────────────────────────────────────────────────
-function renderFedPanel() {
-  document.getElementById('panel-title').textContent = 'Federation';
-  document.getElementById('panel-sub').textContent   = 'Trust anchor · Entities · Trust marks';
-
+// ── Architecture panel ────────────────────────────────────────────────────────
+function renderArch() {
+  document.getElementById('panel-title').textContent = 'Architecture';
+  document.getElementById('panel-sub').textContent   = currentScenario === 'ms' ? 'Multi-cloud WIMSE flow' : 'B2B + OID-FED flow';
   const area = document.getElementById('detail-area');
   area.innerHTML = '';
 
+  if (currentScenario === 'ms') {
+    area.appendChild(msArchCard());
+  } else {
+    area.appendChild(b2bArchCard());
+  }
+}
+
+function msArchCard() {
+  const c = makeCard('Multi-Cloud WIMSE — pure identity chain', '');
+  c.querySelector('.card-body').innerHTML = `
+<div class="arch-flow">
+  ${archNode('var(--accent)',   'SPIRE',           'Workload attestation → WIT + WAG')}
+  ${archArrow('wit+jwt · wag+jwt')}
+  ${archNode('var(--accent)',   'Auth Server (AS)', 'Verifies WAG (SPIRE statically trusted) → issues AT')}
+  ${archArrow('at+jwt bound to cnf.jwk')}
+  ${archNode('var(--cloud-a)', 'Fraud Detection',  'Cloud A / US-East · Bearer + WPT proof')}
+  ${archArrow('WPT aud = /fraud/check')}
+  ${archNode('var(--cloud-b)', 'Compliance Engine','Cloud B / EU-West · Bearer + WPT proof')}
+  ${archArrow('WPT aud = /compliance')}
+  ${archNode('var(--cloud-c)', 'Settlement Gateway','Cloud C / APAC · Bearer + WPT proof')}
+</div>
+<div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:var(--r);font-size:0.75rem;color:var(--text-faint);line-height:1.7">
+  <strong style="color:var(--text)">Key properties</strong><br>
+  · Each service independently verifies AT + WPT — no shared secrets between services<br>
+  · WPT is bound to a specific endpoint URI (<code>aud</code>) — cannot be replayed to another service<br>
+  · <code>wth</code> in the WPT = SHA-256(WIT) — cryptographically links proof to identity credential<br>
+  · <code>cnf.jwk</code> in AT = workload public key — AT verifier can check WPT signature matches
+</div>`;
+  return c;
+}
+
+function b2bArchCard() {
+  const c = makeCard('B2B + OID-FED — dynamic trust discovery', '');
+  c.querySelector('.card-body').innerHTML = `
+<div class="arch-flow">
+  ${archNode('var(--accent)', 'SPIRE', 'Issues WIT (with wit_iss) + WAG')}
+  ${archArrow('wit_iss tells AS which IdP to resolve')}
+  ${archNode('var(--accent)', 'Auth Server (AS)', 'federation/resolve → checks certified-idp mark → issues AT')}
+  ${archArrow('at+jwt')}
+  ${archNode('var(--ok)', 'Internal services', 'Fraud + Compliance verify AT + WPT')}
+  ${archArrow('WIT + WPT to external partner')}
+  ${archNode('var(--rogue)', 'RegulatoryHub (B2B)', 'Independently resolves WIT issuer via federation/resolve → fetches jwks_uri → verifies WIT signature')}
+</div>
+<div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:var(--r);font-size:0.75rem;color:var(--text-faint);line-height:1.7">
+  <strong style="color:var(--text)">When does OID-FED add value?</strong><br>
+  · External partner has not pre-configured your IdP — trust is discovered dynamically<br>
+  · Multiple IdPs across organisations — federation lists who's certified<br>
+  · Rogue IdP: not in federation → rejected at step 4 before AT is ever issued<br>
+  · Entra has <em>treasury-approved</em> mark but not <em>certified-idp</em> — AS enforces this distinction
+</div>`;
+  return c;
+}
+
+function archNode(color, name, desc) {
+  return `<div class="arch-node"><div class="dot" style="background:${color}"></div><div class="node-name">${esc(name)}</div><div class="node-desc">${esc(desc)}</div></div>`;
+}
+function archArrow(label) {
+  return `<div class="arch-arrow">↓<span>${esc(label)}</span></div>`;
+}
+
+// ── Federation panel ──────────────────────────────────────────────────────────
+function renderFed() {
+  document.getElementById('panel-title').textContent = 'Federation';
+  document.getElementById('panel-sub').textContent   = 'OID-FED trust anchor · entities · marks';
+  const area = document.getElementById('detail-area');
+  area.innerHTML = '';
+
+  if (currentScenario === 'ms') {
+    area.innerHTML = '<div class="empty"><div class="big">—</div><p>OID-FED is not used<br>in the multi-cloud scenario.</p></div>';
+    return;
+  }
   if (!fedState) {
-    area.innerHTML = '<div class="empty-state"><div class="big">—</div><p>Connect to the Worker to load federation state.</p></div>';
+    area.innerHTML = '<div class="empty"><div class="big">—</div><p>Connect to the Worker to load federation state.</p></div>';
     return;
   }
 
-  // Trust anchor
+  const reg = fedState.trust_marks;
   const taCard = makeCard('Trust Anchor', 'federation_entity');
-  const taBody = taCard.querySelector('.detail-card-body');
-  taBody.innerHTML = `<div class="entity-id">${escHtml(fedState.federation.trust_anchor.id)}</div>`;
+  taCard.querySelector('.card-body').innerHTML = `<div class="entity-id">${esc(fedState.federation.trust_anchor.id)}</div>`;
   area.appendChild(taCard);
 
-  // IdPs
   const idpCard = makeCard('Registered IdPs', 'openid_provider');
-  const idpBody = idpCard.querySelector('.detail-card-body');
-  const registry = fedState.trust_marks;
-
+  const idpBody = idpCard.querySelector('.card-body');
   for (const idp of fedState.federation.idps) {
-    const marks = Object.entries(registry)
-      .filter(([, holders]) => holders.includes(idp.id))
-      .map(([id]) => id.split('/').pop());
-
+    const marks = Object.entries(reg).filter(([,h]) => h.includes(idp.id)).map(([id]) => id.split('/').pop());
     const row = document.createElement('div');
     row.className = 'entity-row';
-    row.innerHTML = `
-      <div class="entity-dot"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;margin-bottom:2px">${escHtml(idp.name)}</div>
-        <div class="entity-id">${escHtml(idp.id)}</div>
-        <div class="entity-marks">
-          ${marks.map(m => `<span class="mark-chip">${escHtml(m)}</span>`).join('')}
-        </div>
-      </div>`;
+    row.innerHTML = `<div class="entity-dot"></div><div style="flex:1;min-width:0">
+      <div style="font-weight:600;margin-bottom:2px">${esc(idp.name)}</div>
+      <div class="entity-id">${esc(idp.id)}</div>
+      <div class="entity-marks">${marks.map(m => `<span class="mark-chip">${esc(m)}</span>`).join('')}</div>
+    </div>`;
     idpBody.appendChild(row);
   }
-
-  // Rogue IdP (not in federation)
-  const rogueRow = document.createElement('div');
-  rogueRow.className = 'entity-row';
-  rogueRow.innerHTML = `
-    <div class="entity-dot" style="background:var(--reject)"></div>
-    <div style="flex:1;min-width:0">
-      <div style="font-weight:600;margin-bottom:2px;color:var(--reject)">Rogue Bank (not registered)</div>
-      <div class="entity-id">${escHtml(fedState.federation.trust_anchor.id.replace('/ta', '/idp/rogue-bank'))}</div>
-      <div class="entity-marks"><span class="mark-chip rogue">no trust marks</span></div>
-    </div>`;
-  idpBody.appendChild(rogueRow);
+  const rogue = document.createElement('div');
+  rogue.className = 'entity-row';
+  rogue.innerHTML = `<div class="entity-dot" style="background:var(--reject)"></div><div style="flex:1;min-width:0">
+    <div style="font-weight:600;color:var(--reject);margin-bottom:2px">Rogue Bank (not registered)</div>
+    <div class="entity-id">${esc(fedState.federation.trust_anchor.id.replace('/ta','/idp/rogue-bank'))}</div>
+    <div class="entity-marks"><span class="mark-chip warn">no trust marks</span></div>
+  </div>`;
+  idpBody.appendChild(rogue);
   area.appendChild(idpCard);
-
-  // RP
-  const rpCard = makeCard('Relying Party', 'openid_relying_party');
-  rpCard.querySelector('.detail-card-body').innerHTML = `
-    <div class="entity-row" style="border:none;padding-top:0">
-      <div class="entity-dot" style="background:var(--ok)"></div>
-      <div style="flex:1;min-width:0">
-        <div style="font-weight:600;margin-bottom:2px">${escHtml(fedState.federation.rp.name)}</div>
-        <div class="entity-id">${escHtml(fedState.federation.rp.id)}</div>
-        <div class="entity-marks"><span class="mark-chip" style="background:var(--ok-dim);color:var(--ok)">verified-rp</span></div>
-      </div>
-    </div>`;
-  area.appendChild(rpCard);
-
-  // WIMSE identifiers
-  const wimCard = makeCard('WIMSE Identifiers', '');
-  const table = document.createElement('table');
-  table.className = 'kv-table';
-  const rows = [
-    ['SPIRE issuer',  fedState.wimse.spire_issuer],
-    ['AS issuer',     fedState.wimse.as_issuer],
-    ['Workload',      fedState.wimse.workload_spiffe],
-    ['Active IdP',    fedState.wimse.idp_entity_id],
-  ];
-  for (const [k, v] of rows) {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${escHtml(k)}</td><td>${escHtml(v)}</td>`;
-    table.appendChild(tr);
-  }
-  wimCard.querySelector('.detail-card-body').appendChild(table);
-  area.appendChild(wimCard);
-}
-
-function clearDetailArea() {
-  document.getElementById('panel-title').textContent = 'Select a step';
-  document.getElementById('panel-sub').textContent   = '';
-  document.getElementById('detail-area').innerHTML   = '<div class="empty-state" id="empty-right"><div class="big">↑</div><p>Run a scenario to see the<br>WIMSE + OID-FED protocol in action.</p></div>';
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
+function makeCard(label, tag) {
+  const c = document.createElement('div');
+  c.className = 'card';
+  c.innerHTML = `<div class="card-hd">${esc(label)}${tag ? `<span class="tag">${esc(tag)}</span>` : ''}</div><div class="card-body"></div>`;
+  return c;
+}
+function clearRight() {
+  document.getElementById('panel-title').textContent = 'Select a step';
+  document.getElementById('panel-sub').textContent   = '';
+  document.getElementById('detail-area').innerHTML   = '<div class="empty"><div class="big">↑</div><p>Run a scenario to see the protocol in action.</p></div>';
+}
 function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
-
-function escHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-
-function syntaxHighlight(obj) {
-  const json = JSON.stringify(obj, null, 2);
-  return json.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
-    if (/^"/.test(match)) {
-      if (/:$/.test(match)) return `<span class="key">${escHtml(match)}</span>`;
-      return `<span class="str">${escHtml(match)}</span>`;
-    }
-    if (/true|false/.test(match)) return `<span class="bool">${escHtml(match)}</span>`;
-    return `<span class="num">${escHtml(match)}</span>`;
-  });
+function syntaxHL(obj) {
+  return JSON.stringify(obj, null, 2).replace(
+    /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g,
+    m => /^"/.test(m) ? (/:$/.test(m) ? `<span class="jk">${esc(m)}</span>` : `<span class="js">${esc(m)}</span>`)
+       : /true|false/.test(m) ? `<span class="jb">${esc(m)}</span>` : `<span class="jn">${esc(m)}</span>`
+  );
 }
-
 function showError(msg) {
   const el = document.getElementById('error-toast');
-  el.textContent = msg;
-  el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
+  el.textContent = msg; el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 6000);
 }
 
-// ── Boot ──────────────────────────────────────────────────────────────────────
+// ── Init ──────────────────────────────────────────────────────────────────────
+selectScenario('ms');
 checkHealth();
 </script>
 </body>
