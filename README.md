@@ -106,6 +106,6 @@ cd worker && npm test
 | Docker Build | all PRs + main | verifies Go service images still build |
 | Security Scan | main + manual | SBOM (Syft) + Grype container scan |
 | Deploy Worker | main push | wrangler deploy --env production |
-| Deploy SPA | main push, after Worker | wrangler pages deploy |
+| Deploy SPA | main push (Cloudflare Pages auto-deploy) | GitHub integration triggers Cloudflare directly |
 
 Secrets required in `ci` environment: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
