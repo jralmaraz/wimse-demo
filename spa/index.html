@@ -377,14 +377,14 @@ header {
     </div>
 
     <div class="scenario-controls" id="ctrl-ms">
-      <div class="scenario-desc">WIT · WPT · WAG across 3 clouds — no shared secrets, no sidecar</div>
+      <div class="scenario-desc">A $1,250 payment must pass fraud detection, AML/KYC compliance, and settlement — each running on a separate cloud. WIMSE gives the workload a cryptographic identity that every service verifies on its own, with no pre-shared secrets between them.</div>
       <div class="run-row">
         <button class="run-btn ms" id="btn-ms" onclick="runMs()">Run multi-cloud scenario</button>
       </div>
     </div>
 
     <div class="scenario-controls" id="ctrl-b2b" style="display:none">
-      <div class="scenario-desc">OID-FED dynamic trust — Keycloak (certified) vs Rogue IdP</div>
+      <div class="scenario-desc">The payment clears internally, then FinClear must submit it to RegulatoryHub for mandatory regulatory reporting. RegulatoryHub has never pre-configured FinClear's IdP — it discovers and verifies trust dynamically at call time via OpenID Federation. Choose an IdP to see both outcomes.</div>
       <div class="run-row">
         <button class="run-btn kc"    id="btn-kc"    onclick="runB2b('keycloak')">Keycloak (trusted)</button>
         <button class="run-btn rogue" id="btn-rogue" onclick="runB2b('rogue')">Rogue IdP</button>
@@ -442,11 +442,20 @@ document.getElementById('worker-url').onkeydown = e => { if (e.key === 'Enter') 
 
 async function checkHealth() {
   const dot = document.getElementById('conn-dot');
+  const btn = document.getElementById('connect-btn');
+  const prev = btn.textContent;
+  btn.textContent = 'checking…'; btn.disabled = true;
   try {
     const r = await fetch(`${WORKER}/healthz`);
     dot.className = r.ok ? 'conn-dot ok' : 'conn-dot error';
-    if (r.ok) loadFedState();
-  } catch { dot.className = 'conn-dot error'; }
+    if (r.ok) { loadFedState(); btn.textContent = 'connected ✓'; }
+    else btn.textContent = `HTTP ${r.status}`;
+  } catch {
+    dot.className = 'conn-dot error';
+    btn.textContent = 'unreachable';
+  }
+  btn.disabled = false;
+  setTimeout(() => { btn.textContent = prev; }, 3000);
 }
 
 async function loadFedState() {
@@ -570,10 +579,16 @@ function showOutcome(data, type, idp) {
   if (data.outcome === 'approved') {
     el.className = 'approved';
     const n = data.steps.length;
-    el.innerHTML = `<span>✓</span> ${n} steps passed — ${type === 'microservices' ? '3 clouds, no shared secrets' : 'transaction approved'}`;
+    const msg = type === 'microservices'
+      ? '$1,250 cleared — 3 services verified workload identity across 3 clouds, no pre-shared secrets'
+      : `Regulatory submission accepted — RegulatoryHub verified ${idp} independently via OID-FED`;
+    el.innerHTML = `<span>✓</span> ${n} steps passed — ${msg}`;
   } else {
     el.className = 'rejected';
-    el.innerHTML = `<span>✗</span> Rejected at step ${data.rejected_at} — ${type === 'b2b' ? `${idp === 'rogue' ? 'IdP' : 'issuer'} not trusted by federation` : 'verification failed'}`;
+    const msg = type === 'b2b' && idp === 'rogue'
+      ? 'Rogue IdP not found in federation — rejected at step 4 before any AT was issued'
+      : 'verification failed';
+    el.innerHTML = `<span>✗</span> Rejected at step ${data.rejected_at} — ${msg}`;
   }
 }
 
@@ -676,56 +691,149 @@ function renderArch() {
 }
 
 function msArchCard() {
-  const c = makeCard('Multi-Cloud WIMSE — pure identity chain', '');
-  c.querySelector('.card-body').innerHTML = `
-<div class="arch-flow">
-  ${archNode('var(--accent)',   'SPIRE',           'Workload attestation → WIT + WAG')}
-  ${archArrow('wit+jwt · wag+jwt')}
-  ${archNode('var(--accent)',   'Auth Server (AS)', 'Verifies WAG (SPIRE statically trusted) → issues AT')}
-  ${archArrow('at+jwt bound to cnf.jwk')}
-  ${archNode('var(--cloud-a)', 'Fraud Detection',  'Cloud A / US-East · Bearer + WPT proof')}
-  ${archArrow('WPT aud = /fraud/check')}
-  ${archNode('var(--cloud-b)', 'Compliance Engine','Cloud B / EU-West · Bearer + WPT proof')}
-  ${archArrow('WPT aud = /compliance')}
-  ${archNode('var(--cloud-c)', 'Settlement Gateway','Cloud C / APAC · Bearer + WPT proof')}
-</div>
-<div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:var(--r);font-size:0.75rem;color:var(--text-faint);line-height:1.7">
-  <strong style="color:var(--text)">Key properties</strong><br>
-  · Each service independently verifies AT + WPT — no shared secrets between services<br>
-  · WPT is bound to a specific endpoint URI (<code>aud</code>) — cannot be replayed to another service<br>
-  · <code>wth</code> in the WPT = SHA-256(WIT) — cryptographically links proof to identity credential<br>
-  · <code>cnf.jwk</code> in AT = workload public key — AT verifier can check WPT signature matches
+  const c = document.createElement('div');
+  c.className = 'card';
+  c.innerHTML = msArchSVG() + `
+<div style="padding:12px 14px;font-size:0.73rem;color:var(--text-faint);line-height:1.75;border-top:1px solid var(--border)">
+  <strong style="color:var(--text)">Why WIMSE beats pre-shared secrets</strong><br>
+  · Each service verifies AT+WPT independently — no shared trust store or API keys between cloud services<br>
+  · <code>cnf.jwk</code> in AT: the AT is bound to the workload's own key — stealing the token alone is not enough<br>
+  · <code>aud</code> in WPT: a specific endpoint URI — Cloud A's proof cannot be replayed to Cloud B or C<br>
+  · <code>wth</code> in WPT: SHA-256(WIT) — links the request proof back to the workload's identity credential
 </div>`;
   return c;
+}
+
+function msArchSVG() {
+  return `<svg viewBox="0 0 500 314" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arr" viewBox="0 0 10 7" markerWidth="7" markerHeight="5" refX="8" refY="3.5" orient="auto">
+    <path d="M 0,0 L 10,3.5 L 0,7 Z" fill="context-stroke"/>
+  </marker>
+</defs>
+<rect x="4" y="6" width="492" height="42" rx="5" style="fill:var(--surface2);stroke:var(--border)"/>
+<text x="14" y="23" style="fill:var(--accent);font-family:var(--mono);font-size:11px;font-weight:700">FinClear · cross-cloud payment</text>
+<text x="14" y="40" style="fill:var(--text-faint);font-family:var(--sans);font-size:10px">$1,250 AUD — fraud check · AML/KYC compliance · settlement — each service on a different cloud</text>
+<text x="4" y="62" style="fill:var(--muted);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em">PHASE 1 — WORKLOAD IDENTITY</text>
+<rect x="165" y="68" width="170" height="40" rx="5" style="fill:var(--accent-dim);stroke:var(--accent);stroke-width:1.5"/>
+<text x="250" y="84" text-anchor="middle" style="fill:var(--accent);font-family:var(--mono);font-size:10.5px;font-weight:700">SPIRE + Keycloak IdP</text>
+<text x="250" y="99" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">workload attestation</text>
+<line x1="226" y1="108" x2="150" y2="130" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="172" y="121" style="fill:var(--accent);font-family:var(--mono);font-size:8px">WIT · WAG</text>
+<rect x="10" y="132" width="200" height="40" rx="5" style="fill:var(--surface2);stroke:var(--border);stroke-width:1.5"/>
+<text x="110" y="149" text-anchor="middle" style="fill:var(--text);font-family:var(--mono);font-size:10.5px;font-weight:700">transaction-processor</text>
+<text x="110" y="163" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">holds WIT · gets AT via token exchange</text>
+<line x1="210" y1="148" x2="283" y2="148" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="246" y="143" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--mono);font-size:8px">WAG</text>
+<line x1="283" y1="164" x2="210" y2="164" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#arr)"/>
+<text x="246" y="178" text-anchor="middle" style="fill:var(--ok);font-family:var(--mono);font-size:8px">AT (cnf.jwk bound)</text>
+<rect x="285" y="132" width="176" height="40" rx="5" style="fill:var(--ok-dim);stroke:var(--ok);stroke-width:1.5"/>
+<text x="373" y="149" text-anchor="middle" style="fill:var(--ok);font-family:var(--mono);font-size:10.5px;font-weight:700">Auth Server</text>
+<text x="373" y="163" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">validates WAG · issues AT</text>
+<text x="4" y="198" style="fill:var(--muted);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em">PHASE 2 — VERIFICATION ACROSS 3 CLOUDS</text>
+<line x1="110" y1="172" x2="110" y2="214" stroke="var(--border)" stroke-width="1.5"/>
+<line x1="83" y1="214" x2="418" y2="214" stroke="var(--border)" stroke-width="1.5"/>
+<line x1="83" y1="214" x2="83" y2="223" stroke="var(--cloud-a)" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="250" y1="214" x2="250" y2="223" stroke="var(--cloud-b)" stroke-width="1.5" marker-end="url(#arr)"/>
+<line x1="418" y1="214" x2="418" y2="223" stroke="var(--cloud-c)" stroke-width="1.5" marker-end="url(#arr)"/>
+<rect x="5" y="223" width="155" height="88" rx="5" style="fill:var(--cloud-a-dim);stroke:var(--cloud-a);stroke-width:1.5"/>
+<text x="83" y="241" text-anchor="middle" style="fill:var(--cloud-a);font-family:var(--mono);font-size:10.5px;font-weight:700">Fraud Detection</text>
+<text x="83" y="256" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">Cloud A · AWS US-East</text>
+<text x="83" y="271" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--mono);font-size:8.5px">AT + WPT (aud=/fraud)</text>
+<text x="83" y="298" text-anchor="middle" style="fill:var(--ok);font-family:var(--mono);font-size:9.5px;font-weight:700">✓ score 0.08 · PASS</text>
+<rect x="173" y="223" width="155" height="88" rx="5" style="fill:var(--cloud-b-dim);stroke:var(--cloud-b);stroke-width:1.5"/>
+<text x="250" y="241" text-anchor="middle" style="fill:var(--cloud-b);font-family:var(--mono);font-size:10.5px;font-weight:700">Compliance Engine</text>
+<text x="250" y="256" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">Cloud B · Azure EU-West</text>
+<text x="250" y="271" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--mono);font-size:8.5px">AT + WPT (aud=/compliance)</text>
+<text x="250" y="298" text-anchor="middle" style="fill:var(--ok);font-family:var(--mono);font-size:9.5px;font-weight:700">✓ AML/KYC · PASS</text>
+<rect x="340" y="223" width="155" height="88" rx="5" style="fill:var(--cloud-c-dim);stroke:var(--cloud-c);stroke-width:1.5"/>
+<text x="418" y="241" text-anchor="middle" style="fill:var(--cloud-c);font-family:var(--mono);font-size:10.5px;font-weight:700">Settlement Gateway</text>
+<text x="418" y="256" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">Cloud C · GCP APAC</text>
+<text x="418" y="271" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--mono);font-size:8.5px">AT + WPT (aud=/settlement)</text>
+<text x="418" y="298" text-anchor="middle" style="fill:var(--ok);font-family:var(--mono);font-size:9.5px;font-weight:700">✓ $1,250 · CLEARED</text>
+</svg>`;
 }
 
 function b2bArchCard() {
-  const c = makeCard('B2B + OID-FED — dynamic trust discovery', '');
-  c.querySelector('.card-body').innerHTML = `
-<div class="arch-flow">
-  ${archNode('var(--accent)', 'SPIRE', 'Issues WIT (with wit_iss) + WAG')}
-  ${archArrow('wit_iss tells AS which IdP to resolve')}
-  ${archNode('var(--accent)', 'Auth Server (AS)', 'federation/resolve → checks certified-idp mark → issues AT')}
-  ${archArrow('at+jwt')}
-  ${archNode('var(--ok)', 'Internal services', 'Fraud + Compliance verify AT + WPT')}
-  ${archArrow('WIT + WPT to external partner')}
-  ${archNode('var(--rogue)', 'RegulatoryHub (B2B)', 'Independently resolves WIT issuer via federation/resolve → fetches jwks_uri → verifies WIT signature')}
-</div>
-<div style="margin-top:16px;padding:12px;background:var(--bg);border-radius:var(--r);font-size:0.75rem;color:var(--text-faint);line-height:1.7">
-  <strong style="color:var(--text)">When does OID-FED add value?</strong><br>
-  · External partner has not pre-configured your IdP — trust is discovered dynamically<br>
-  · Multiple IdPs across organisations — federation lists who's certified<br>
-  · Rogue IdP: not in federation → rejected at step 4 before AT is ever issued<br>
-  · Entra has <em>treasury-approved</em> mark but not <em>certified-idp</em> — AS enforces this distinction
+  const c = document.createElement('div');
+  c.className = 'card';
+  c.innerHTML = b2bArchSVG() + `
+<div style="padding:12px 14px;font-size:0.73rem;color:var(--text-faint);line-height:1.75;border-top:1px solid var(--border)">
+  <strong style="color:var(--text)">The core OID-FED insight</strong><br>
+  · RegulatoryHub has <em>never</em> pre-configured FinClear's IdP — trust is discovered at call time, not provisioned<br>
+  · Both AS and RegulatoryHub hit the <em>same</em> federation independently — no coordination needed between them<br>
+  · Rogue Bank's IdP is not in the federation → rejected at step 4 before any AT is issued<br>
+  · Entra has <code>treasury-approved</code> but not <code>certified-idp</code> — the AS enforces mark specificity
 </div>`;
   return c;
 }
 
-function archNode(color, name, desc) {
-  return `<div class="arch-node"><div class="dot" style="background:${color}"></div><div class="node-name">${esc(name)}</div><div class="node-desc">${esc(desc)}</div></div>`;
-}
-function archArrow(label) {
-  return `<div class="arch-arrow">↓<span>${esc(label)}</span></div>`;
+function b2bArchSVG() {
+  return `<svg viewBox="0 0 500 432" style="width:100%;display:block" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <marker id="arr2" viewBox="0 0 10 7" markerWidth="7" markerHeight="5" refX="8" refY="3.5" orient="auto">
+    <path d="M 0,0 L 10,3.5 L 0,7 Z" fill="context-stroke"/>
+  </marker>
+</defs>
+<rect x="4" y="6" width="492" height="42" rx="5" style="fill:var(--surface2);stroke:var(--border)"/>
+<text x="14" y="23" style="fill:var(--rogue);font-family:var(--mono);font-size:11px;font-weight:700">FinClear → RegulatoryHub · regulatory submission</text>
+<text x="14" y="40" style="fill:var(--text-faint);font-family:var(--sans);font-size:10px">External partner hasn't pre-configured FinClear's IdP — trust is discovered dynamically via OpenID Federation</text>
+<text x="4" y="62" style="fill:var(--muted);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em">CREDENTIAL CHAIN (FinClear internal)</text>
+<rect x="10" y="68" width="168" height="40" rx="5" style="fill:var(--accent-dim);stroke:var(--accent);stroke-width:1.5"/>
+<text x="94" y="85" text-anchor="middle" style="fill:var(--accent);font-family:var(--mono);font-size:10.5px;font-weight:700">SPIRE + Keycloak IdP</text>
+<text x="94" y="99" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">iss = keycloak entity ID</text>
+<line x1="94" y1="108" x2="94" y2="128" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#arr2)"/>
+<text x="99" y="122" style="fill:var(--accent);font-family:var(--mono);font-size:8px">WIT · WAG</text>
+<rect x="10" y="130" width="168" height="40" rx="5" style="fill:var(--surface2);stroke:var(--border);stroke-width:1.5"/>
+<text x="94" y="147" text-anchor="middle" style="fill:var(--text);font-family:var(--mono);font-size:10.5px;font-weight:700">transaction-processor</text>
+<text x="94" y="162" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">submits WAG for token exchange</text>
+<line x1="94" y1="170" x2="94" y2="190" stroke="var(--text-faint)" stroke-width="1.5" marker-end="url(#arr2)"/>
+<text x="99" y="184" style="fill:var(--text-faint);font-family:var(--mono);font-size:8px">WAG</text>
+<rect x="10" y="192" width="168" height="56" rx="5" style="fill:var(--ok-dim);stroke:var(--ok);stroke-width:1.5"/>
+<text x="94" y="209" text-anchor="middle" style="fill:var(--ok);font-family:var(--mono);font-size:10.5px;font-weight:700">Auth Server</text>
+<text x="94" y="224" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">federation/resolve(wit_iss)</text>
+<text x="94" y="238" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">check certified-idp mark</text>
+<line x1="178" y1="220" x2="226" y2="220" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arr2)"/>
+<text x="202" y="215" text-anchor="middle" style="fill:var(--accent);font-family:var(--mono);font-size:7.5px">resolve</text>
+<line x1="226" y1="232" x2="178" y2="232" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#arr2)"/>
+<text x="202" y="244" text-anchor="middle" style="fill:var(--ok);font-family:var(--mono);font-size:7.5px">trust chain</text>
+<rect x="228" y="62" width="268" height="196" rx="5" style="fill:var(--surface2);stroke:var(--border);stroke-width:1.5"/>
+<rect x="228" y="62" width="268" height="28" rx="5" style="fill:var(--accent-dim);stroke:var(--accent);stroke-width:1.5"/>
+<text x="362" y="72" text-anchor="middle" style="fill:var(--accent);font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.04em">FINCLEAR FEDERATION (OID-FED)</text>
+<text x="362" y="84" text-anchor="middle" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">Trust Anchor</text>
+<rect x="238" y="100" width="248" height="34" rx="4" style="fill:var(--ok-dim);stroke:var(--ok);stroke-width:1"/>
+<text x="248" y="114" style="fill:var(--ok);font-family:var(--mono);font-size:9.5px;font-weight:700">Keycloak</text>
+<text x="468" y="114" text-anchor="end" style="fill:var(--ok);font-family:var(--mono);font-size:8.5px">certified-idp ✓</text>
+<text x="248" y="127" style="fill:var(--text-faint);font-family:var(--sans);font-size:8.5px">federation/resolve → AT issued</text>
+<rect x="238" y="140" width="248" height="26" rx="4" style="fill:var(--ok-dim);stroke:var(--ok);stroke-width:1"/>
+<text x="248" y="156" style="fill:var(--ok);font-family:var(--mono);font-size:9.5px;font-weight:700">Okta</text>
+<text x="468" y="156" text-anchor="end" style="fill:var(--ok);font-family:var(--mono);font-size:8.5px">certified-idp ✓</text>
+<rect x="238" y="172" width="248" height="26" rx="4" style="fill:var(--ok-dim);stroke:var(--ok);stroke-width:1"/>
+<text x="248" y="188" style="fill:var(--ok);font-family:var(--mono);font-size:9.5px;font-weight:700">Entra</text>
+<text x="468" y="188" text-anchor="end" style="fill:var(--ok);font-family:var(--mono);font-size:8.5px">treasury-approved ✓</text>
+<rect x="238" y="204" width="248" height="26" rx="4" style="fill:var(--reject-dim);stroke:var(--reject);stroke-width:1"/>
+<text x="248" y="220" style="fill:var(--reject);font-family:var(--mono);font-size:9.5px;font-weight:700">Rogue Bank</text>
+<text x="468" y="220" text-anchor="end" style="fill:var(--reject);font-family:var(--mono);font-size:8.5px">not registered ✗ → REJECT</text>
+<text x="238" y="239" style="fill:var(--text-faint);font-family:var(--sans);font-size:8.5px">  no trust marks — rejected at step 4 before AT is issued</text>
+<line x1="94" y1="248" x2="94" y2="268" stroke="var(--ok)" stroke-width="1.5" marker-end="url(#arr2)"/>
+<text x="99" y="262" style="fill:var(--ok);font-family:var(--mono);font-size:8px">AT</text>
+<rect x="10" y="270" width="480" height="34" rx="5" style="fill:var(--surface2);stroke:var(--border);stroke-width:1"/>
+<text x="14" y="284" style="fill:var(--cloud-a);font-family:var(--mono);font-size:9px;font-weight:700">Fraud Detection</text>
+<text x="14" y="296" style="fill:var(--text-faint);font-family:var(--sans);font-size:8.5px">Cloud A · AT + WPT · ✓ PASS</text>
+<text x="256" y="284" style="fill:var(--cloud-b);font-family:var(--mono);font-size:9px;font-weight:700">Compliance Engine</text>
+<text x="256" y="296" style="fill:var(--text-faint);font-family:var(--sans);font-size:8.5px">Cloud B · AT + WPT · ✓ PASS</text>
+<line x1="10" y1="320" x2="490" y2="320" stroke="var(--border)" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="250" y="318" text-anchor="middle" style="fill:var(--muted);font-family:var(--mono);font-size:8px;letter-spacing:.04em">EXTERNAL BOUNDARY</text>
+<line x1="94" y1="304" x2="94" y2="338" stroke="var(--rogue)" stroke-width="1.5" marker-end="url(#arr2)"/>
+<text x="99" y="330" style="fill:var(--rogue);font-family:var(--mono);font-size:8px">WIT + WPT</text>
+<rect x="10" y="340" width="480" height="86" rx="5" style="fill:var(--rogue-dim);stroke:var(--rogue);stroke-width:1.5"/>
+<text x="20" y="358" style="fill:var(--rogue);font-family:var(--mono);font-size:10.5px;font-weight:700">RegulatoryHub</text>
+<text x="490" y="358" text-anchor="end" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">external partner — zero pre-configuration of FinClear's IdP</text>
+<text x="20" y="376" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">1. extract iss from WIT  →  keycloak entity ID</text>
+<text x="20" y="391" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">2. federation/resolve(iss)  →  same FinClear federation, same trust chain</text>
+<text x="20" y="406" style="fill:var(--text-faint);font-family:var(--sans);font-size:9px">3. fetch jwks_uri  →  get Keycloak's public key  →  verify WIT signature + certified-idp mark</text>
+<text x="20" y="420" style="fill:var(--ok);font-family:var(--mono);font-size:9.5px;font-weight:700">✓ APPROVED (Keycloak/Okta)   ✗ Rogue already blocked at step 4 — never reaches here</text>
+</svg>`;
 }
 
 // ── Federation panel ──────────────────────────────────────────────────────────
