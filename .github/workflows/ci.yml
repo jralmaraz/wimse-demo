@@ -18,7 +18,7 @@ concurrency:
 jobs:
   # ── Go: test + lint + vuln scan ───────────────────────────────────────────
   go-test:
-    name: Go — Test & Lint
+    name: Test & Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
